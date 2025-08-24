@@ -164,6 +164,11 @@ class MainActivity : AppCompatActivity() {
             testConnection()
         }
         
+        // Botão descobrir UUIDs
+        binding.btnDiscoverUUIDs.setOnClickListener {
+            discoverUUIDs()
+        }
+        
         updateBluetoothStatus()
     }
     
@@ -299,6 +304,46 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "Conexão falhou!", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+    }
+    
+    private fun discoverUUIDs() {
+        if (currentDevice == null) {
+            Toast.makeText(this, "Nenhum dispositivo selecionado", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        val bluetoothManager = thermalBluetoothManager
+        val bluetoothAdapter = bluetoothAdapter
+        
+        if (bluetoothAdapter != null) {
+            val device = bluetoothAdapter.getRemoteDevice(currentDevice!!)
+            
+            addToLog("=== DESCOBRINDO UUIDs ===")
+            addToLog("Dispositivo: ${device.name} (${device.address})")
+            
+            bluetoothManager.discoverDeviceUUIDs(device) { uuids ->
+                runOnUiThread {
+                    if (uuids.isNotEmpty()) {
+                        addToLog("✅ UUIDs descobertos:")
+                        uuids.forEach { uuid ->
+                            addToLog("  - $uuid")
+                        }
+                        
+                        // Se encontrou UUIDs diferentes do padrão, usar o primeiro
+                        val firstUUID = uuids.first()
+                        if (firstUUID.toString() != "00001101-0000-1000-8000-00805F9B34FB") {
+                            addToLog("🎯 UUID alternativo encontrado! Tente conectar novamente.")
+                        }
+                        
+                    } else {
+                        addToLog("❌ Nenhum UUID suportado encontrado")
+                        addToLog("💡 Tente emparelhar o dispositivo primeiro")
+                    }
+                }
+            }
+        } else {
+            addToLog("❌ Bluetooth adapter não disponível")
         }
     }
     

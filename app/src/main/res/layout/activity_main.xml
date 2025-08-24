@@ -175,6 +175,14 @@
                 android:text="Testar Conexão"
                 android:layout_marginTop="8dp"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
+                
+            <Button
+                android:id="@+id/btnDiscoverUUIDs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Descobrir UUIDs da Impressora"
+                android:layout_marginTop="8dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         </LinearLayout>
 

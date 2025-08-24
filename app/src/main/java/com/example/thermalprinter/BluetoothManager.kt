@@ -15,6 +15,21 @@ class BluetoothManager(private val context: Context) {
     companion object {
         private const val TAG = "BluetoothManager"
         private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        
+        // UUIDs comuns para impressoras térmicas
+        private val COMMON_PRINTER_UUIDS = listOf(
+            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"), // SPP Padrão
+            UUID.fromString("00001108-0000-1000-8000-00805F9B34FB"), // HID
+            UUID.fromString("0000110A-0000-1000-8000-00805F9B34FB"), // Audio
+            UUID.fromString("0000110B-0000-1000-8000-00805F9B34FB"), // Audio
+            UUID.fromString("0000110C-0000-1000-8000-00805F9B34FB"), // Audio
+            UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB"), // Audio
+            UUID.fromString("0000110F-0000-1000-8000-00805F9B34FB"), // Audio
+            UUID.fromString("0000111E-0000-1000-8000-00805F9B34FB"), // Handsfree
+            UUID.fromString("00001200-0000-1000-8000-00805F9B34FB"), // PnP Information
+            UUID.fromString("00001800-0000-1000-8000-00805F9B34FB"), // Generic Access
+            UUID.fromString("00001801-0000-1000-8000-00805F9B34FB")  // Generic Attribute
+        )
     }
     
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -360,6 +375,54 @@ class BluetoothManager(private val context: Context) {
             append("Output Stream: ${outputStream != null}\n")
             append("Bluetooth Adapter: ${bluetoothAdapter?.isEnabled}\n")
             append("SPP UUID: $SPP_UUID")
+        }
+    }
+    
+    fun discoverDeviceUUIDs(device: BluetoothDevice, callback: (List<UUID>) -> Unit) {
+        Log.d(TAG, "=== DESCOBRINDO UUIDs DO DISPOSITIVO ===")
+        Log.d(TAG, "Dispositivo: ${device.name} (${device.address})")
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val supportedUUIDs = mutableListOf<UUID>()
+                
+                // Tentar conectar com cada UUID comum
+                COMMON_PRINTER_UUIDS.forEach { uuid ->
+                    try {
+                        Log.d(TAG, "Testando UUID: $uuid")
+                        
+                        val testSocket = device.createRfcommSocketToServiceRecord(uuid)
+                        testSocket.connect()
+                        
+                        if (testSocket.isConnected) {
+                            Log.d(TAG, "✅ UUID suportado: $uuid")
+                            supportedUUIDs.add(uuid)
+                            testSocket.close()
+                        } else {
+                            Log.d(TAG, "❌ UUID não suportado: $uuid")
+                        }
+                        
+                    } catch (e: Exception) {
+                        Log.d(TAG, "❌ UUID falhou: $uuid - ${e.message}")
+                    }
+                }
+                
+                Log.d(TAG, "=== UUIDs DESCOBERTOS ===")
+                Log.d(TAG, "Total: ${supportedUUIDs.size}")
+                supportedUUIDs.forEach { uuid ->
+                    Log.d(TAG, "✅ $uuid")
+                }
+                
+                withContext(Dispatchers.Main) {
+                    callback(supportedUUIDs)
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao descobrir UUIDs: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(emptyList())
+                }
+            }
         }
     }
     
