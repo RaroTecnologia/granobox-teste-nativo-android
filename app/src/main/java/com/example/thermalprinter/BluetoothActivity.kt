@@ -211,7 +211,7 @@ class BluetoothActivity : AppCompatActivity() {
         updateScanStatus("Conectando a ${device.name}...")
         
         // Criar BluetoothManager temporário para testar conexão
-        val tempBluetoothManager = ThermalBluetoothManager(this)
+        val tempBluetoothManager = BluetoothManager(this)
         val bluetoothAdapter = bluetoothAdapter
         
         if (bluetoothAdapter != null) {
@@ -219,7 +219,7 @@ class BluetoothActivity : AppCompatActivity() {
             
             Log.d(TAG, "Testando conexão antes de retornar resultado...")
             
-            tempBluetoothManager.connectToDevice(device) { success, error ->
+            tempBluetoothManager.connectToDevice(device) { success: Boolean, error: String? ->
                 Log.d(TAG, "Resultado da conexão: success=$success, error=$error")
                 
                 runOnUiThread {
