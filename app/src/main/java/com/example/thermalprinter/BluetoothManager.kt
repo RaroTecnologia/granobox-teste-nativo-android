@@ -245,21 +245,30 @@ class BluetoothManager(private val context: Context) {
         printCPCL(testPage)
     }
     
-    fun testConnection(): Boolean {
-        return try {
-            if (isConnected()) {
-                // Tentar enviar um comando de teste simples
-                val testCommand = "\r\n"
-                outputStream?.write(testCommand.toByteArray())
-                outputStream?.flush()
-                delay(100)
-                true
-            } else {
-                false
+    fun testConnection(callback: (Boolean) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                if (isConnected()) {
+                    // Tentar enviar um comando de teste simples
+                    val testCommand = "\r\n"
+                    outputStream?.write(testCommand.toByteArray())
+                    outputStream?.flush()
+                    delay(100)
+                    
+                    withContext(Dispatchers.Main) {
+                        callback(true)
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        callback(false)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Teste de conexão falhou: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false)
+                }
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Teste de conexão falhou: ${e.message}")
-            false
         }
     }
     
