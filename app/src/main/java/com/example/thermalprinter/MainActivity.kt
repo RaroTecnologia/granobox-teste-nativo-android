@@ -159,6 +159,11 @@ class MainActivity : AppCompatActivity() {
             printTestLabel60x60()
         }
         
+        // Botão testar conexão
+        binding.btnTestConnection.setOnClickListener {
+            testConnection()
+        }
+        
         updateBluetoothStatus()
     }
     
@@ -276,6 +281,25 @@ class MainActivity : AppCompatActivity() {
             barcode = "12345",
             qrData = "TEST123"
         )
+    }
+    
+    private fun testConnection() {
+        val bluetoothManager = thermalBluetoothManager
+        
+        addToLog("=== TESTANDO CONEXÃO ===")
+        addToLog(bluetoothManager.getConnectionStatus())
+        
+        bluetoothManager.testConnection { success ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✓ Teste de conexão: SUCESSO")
+                    Toast.makeText(this, "Conexão funcionando!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("✗ Teste de conexão: FALHOU")
+                    Toast.makeText(this, "Conexão falhou!", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
     
     private fun addToLog(message: String) {
