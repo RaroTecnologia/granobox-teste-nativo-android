@@ -119,25 +119,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         
-        permissionManager.onBluetoothPermissionsResult = { granted ->
-            if (granted) {
-                addToLog("✓ Permissões Bluetooth concedidas")
-                checkLocationPermissions()
-            } else {
-                addToLog("✗ Permissões Bluetooth negadas")
-                Toast.makeText(this, "Permissões Bluetooth são necessárias", Toast.LENGTH_LONG).show()
-            }
-        }
-        
-        permissionManager.onLocationPermissionsResult = { granted ->
-            if (granted) {
-                addToLog("✓ Permissões de localização concedidas")
-                updateBluetoothStatus()
-            } else {
-                addToLog("✗ Permissões de localização negadas")
-                Toast.makeText(this, "Permissões de localização são necessárias para Bluetooth", Toast.LENGTH_LONG).show()
-            }
-        }
+
     }
     
     private fun setupUI() {
@@ -296,6 +278,37 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateBluetoothStatus()
+    }
+    
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        
+        when (requestCode) {
+            PermissionManager.REQUEST_BLUETOOTH_PERMISSIONS -> {
+                val allGranted = grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+                if (allGranted) {
+                    addToLog("✓ Permissões Bluetooth concedidas")
+                    checkLocationPermissions()
+                } else {
+                    addToLog("✗ Permissões Bluetooth negadas")
+                    Toast.makeText(this, "Permissões Bluetooth são necessárias", Toast.LENGTH_LONG).show()
+                }
+            }
+            PermissionManager.REQUEST_LOCATION_PERMISSIONS -> {
+                val allGranted = grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }
+                if (allGranted) {
+                    addToLog("✓ Permissões de localização concedidas")
+                    updateBluetoothStatus()
+                } else {
+                    addToLog("✗ Permissões de localização negadas")
+                    Toast.makeText(this, "Permissões de localização são necessárias para Bluetooth", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
     
     override fun onDestroy() {

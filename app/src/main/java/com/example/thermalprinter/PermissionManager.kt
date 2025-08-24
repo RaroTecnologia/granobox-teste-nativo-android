@@ -15,6 +15,8 @@ class PermissionManager(private val context: Context) {
     
     companion object {
         private const val TAG = "PermissionManager"
+        const val REQUEST_BLUETOOTH_PERMISSIONS = 1001
+        const val REQUEST_LOCATION_PERMISSIONS = 1002
     }
     
     // Callbacks
@@ -51,35 +53,19 @@ class PermissionManager(private val context: Context) {
     
     fun requestBluetoothPermissions() {
         if (context is Activity) {
-            val launcher = context.registerForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions()
-            ) { permissions ->
-                val allGranted = permissions.values.all { it }
-                onBluetoothPermissionsResult?.invoke(allGranted)
-                
-                if (!allGranted) {
-                    showBluetoothPermissionRationale()
-                }
+            // Para versões mais antigas do Android, usar requestPermissions diretamente
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                (context as Activity).requestPermissions(bluetoothPermissions, REQUEST_BLUETOOTH_PERMISSIONS)
             }
-            
-            launcher.launch(bluetoothPermissions)
         }
     }
     
     fun requestLocationPermissions() {
         if (context is Activity) {
-            val launcher = context.registerForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions()
-            ) { permissions ->
-                val allGranted = permissions.values.all { it }
-                onLocationPermissionsResult?.invoke(allGranted)
-                
-                if (!allGranted) {
-                    showLocationPermissionRationale()
-                }
+            // Para versões mais antigas do Android, usar requestPermissions diretamente
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                (context as Activity).requestPermissions(locationPermissions, REQUEST_LOCATION_PERMISSIONS)
             }
-            
-            launcher.launch(locationPermissions)
         }
     }
     

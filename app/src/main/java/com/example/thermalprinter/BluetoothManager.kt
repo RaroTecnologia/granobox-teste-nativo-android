@@ -75,6 +75,20 @@ class BluetoothManager(private val context: Context) {
         }
     }
     
+    fun connectToDevice(address: String, callback: (Boolean, String?) -> Unit) {
+        if (!isBluetoothEnabled()) {
+            callback(false, "Bluetooth não está habilitado")
+            return
+        }
+        
+        bluetoothAdapter?.let { adapter ->
+            val device = adapter.getRemoteDevice(address)
+            connectToDevice(device, callback)
+        } ?: run {
+            callback(false, "BluetoothAdapter não disponível")
+        }
+    }
+    
     fun disconnect() {
         try {
             outputStream?.close()
