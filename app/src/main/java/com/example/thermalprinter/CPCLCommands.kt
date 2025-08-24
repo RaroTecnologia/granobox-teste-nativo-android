@@ -236,4 +236,57 @@ object CPCLCommands {
     fun generateTextOnlyTest(): String {
         return "TEXT 4 0 5 5 TESTE\r\n"
     }
+
+    /**
+     * Comando CPCL UNIVERSAL - compatível com maioria das impressoras
+     */
+    fun generateUniversalTest(): String {
+        return buildString {
+            append("! 0 200 200 50 1\r\n")  // Form padrão
+            append("TEXT 4 0 10 20 UNIVERSAL\r\n")  // Texto simples
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
+
+    /**
+     * Comando CPCL com inicialização explícita
+     */
+    fun generateInitializedTest(): String {
+        return buildString {
+            append("! 0 200 200 50 1\r\n")  // Inicialização
+            append("PAGE-WIDTH 384\r\n")    // Largura da página
+            append("TEXT 4 0 10 20 INICIALIZADO\r\n")
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
+
+    /**
+     * Comando CPCL com reset explícito
+     */
+    fun generateResetTest(): String {
+        return buildString {
+            append("! U1 SETLP 7 0 24\r\n")  // Reset e configuração
+            append("! 0 200 200 50 1\r\n")   // Form
+            append("TEXT 4 0 10 20 RESET\r\n")
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
+
+    /**
+     * Comando CPCL com configurações específicas para 60x60mm
+     */
+    fun generate60x60mmUniversal(): String {
+        return buildString {
+            append("! 0 200 200 240 1\r\n")  // 60x60mm = 240 dots
+            append("PAGE-WIDTH 384\r\n")      // Largura padrão
+            append("TEXT 4 0 10 30 60x60mm\r\n")
+            append("TEXT 4 0 10 50 UNIVERSAL\r\n")
+            append("LINE 1 10 80 230 80\r\n")
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
 }

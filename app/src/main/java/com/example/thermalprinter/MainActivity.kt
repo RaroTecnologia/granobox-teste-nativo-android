@@ -189,6 +189,12 @@ class MainActivity : AppCompatActivity() {
         binding.btnUltraSimple.setOnClickListener { testUltraSimpleCPCL() }
         binding.btnPrintOnly.setOnClickListener { testPrintOnlyCPCL() }
         binding.btnFormOnly.setOnClickListener { testFormOnlyCPCL() }
+        binding.btnCaptureCPCL.setOnClickListener { captureCPCLCommands() }
+        binding.btnOpenLabelStyle.setOnClickListener { testOpenLabelStyleCPCL() }
+        binding.btnUniversal.setOnClickListener { testUniversalCPCL() }
+        binding.btnInitialized.setOnClickListener { testInitializedCPCL() }
+        binding.btnReset.setOnClickListener { testResetCPCL() }
+        binding.btn60x60Universal.setOnClickListener { test60x60UniversalCPCL() }
         
         updateBluetoothStatus()
     }
@@ -579,6 +585,132 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     addToLog("❌ Falha no comando FORM: $error")
                     Toast.makeText(this, "Falha no FORM: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun captureCPCLCommands() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== CAPTURANDO COMANDOS CPCL ===")
+        bluetoothManager.captureCPCLCommands { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Comandos CPCL capturados com sucesso")
+                    Toast.makeText(this, "Comandos CPCL capturados!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha ao capturar comandos CPCL: $error")
+                    Toast.makeText(this, "Falha ao capturar comandos: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testOpenLabelStyleCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE ESTILO OPENLABEL ===")
+        bluetoothManager.testOpenLabelStyleCPCL { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Estilo da etiqueta aplicado com sucesso")
+                    Toast.makeText(this, "Estilo da etiqueta aplicado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha ao aplicar estilo da etiqueta: $error")
+                    Toast.makeText(this, "Falha ao aplicar estilo: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testUniversalCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE CPCL UNIVERSAL ===")
+        bluetoothManager.printUniversalTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Teste universal enviado com sucesso")
+                    Toast.makeText(this, "Teste universal enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no teste universal: $error")
+                    Toast.makeText(this, "Falha no teste: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testInitializedCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE CPCL INITIALIZED ===")
+        bluetoothManager.printInitializedTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Teste initialized enviado com sucesso")
+                    Toast.makeText(this, "Teste initialized enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no teste initialized: $error")
+                    Toast.makeText(this, "Falha no teste: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testResetCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE CPCL RESET ===")
+        bluetoothManager.printResetTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Teste reset enviado com sucesso")
+                    Toast.makeText(this, "Teste reset enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no teste reset: $error")
+                    Toast.makeText(this, "Falha no teste: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun test60x60UniversalCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE ETIQUETA 60x60 UNIVERSAL ===")
+        bluetoothManager.print60x60UniversalLabel { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Etiqueta 60x60 universal enviada com sucesso")
+                    Toast.makeText(this, "Etiqueta 60x60 universal enviada!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha na etiqueta 60x60 universal: $error")
+                    Toast.makeText(this, "Falha na etiqueta: $error", Toast.LENGTH_LONG).show()
                 }
             }
         }

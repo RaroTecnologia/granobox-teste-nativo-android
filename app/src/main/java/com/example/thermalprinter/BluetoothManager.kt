@@ -661,4 +661,231 @@ class BluetoothManager(private val context: Context) {
             }
         }
     }
+
+    /**
+     * Captura comandos CPCL para análise
+     */
+    fun captureCPCLCommands(callback: (String) -> Unit) {
+        if (!isConnected()) {
+            callback("Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== CAPTURANDO COMANDOS CPCL ===")
+                
+                // Comandos de teste baseados no que pode estar funcionando
+                val testCommands = listOf(
+                    "! 0 200 200 50 1\r\nTEXT 4 0 10 20 TESTE\r\nFORM\r\nPRINT\r\n",
+                    "! 0 200 200 100 1\r\nCENTER 4 0 50 TESTE CENTRO\r\nFORM\r\nPRINT\r\n",
+                    "! 0 200 200 80 1\r\nLEFT 4 0 40 TESTE ESQUERDA\r\nFORM\r\nPRINT\r\n",
+                    "! 0 200 200 60 1\r\nRIGHT 4 0 30 TESTE DIREITA\r\nFORM\r\nPRINT\r\n"
+                )
+
+                testCommands.forEachIndexed { index, command ->
+                    Log.d(TAG, "Testando comando ${index + 1}: $command")
+                    
+                    val data = command.toByteArray()
+                    outputStream?.write(data)
+                    outputStream?.flush()
+                    
+                    delay(500) // Delay entre comandos
+                    
+                    Log.d(TAG, "Comando ${index + 1} enviado")
+                }
+
+                withContext(Dispatchers.Main) {
+                    callback("Comandos de teste enviados - verifique a impressora")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro na captura: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback("Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comandos CPCL específicos baseados no OpenLabel
+     */
+    fun testOpenLabelStyleCPCL(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE ESTILO OPENLABEL ===")
+                
+                // Comando baseado no que o OpenLabel pode estar usando
+                val openLabelCommand = buildString {
+                    append("! 0 200 200 60 1\r\n")  // Form pequeno
+                    append("CENTER 4 0 30 TESTE\r\n")  // Texto centralizado
+                    append("FORM\r\n")
+                    append("PRINT\r\n")
+                }
+                
+                Log.d(TAG, "Comando OpenLabel: $openLabelCommand")
+                
+                val data = openLabelCommand.toByteArray()
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                delay(300)
+                
+                Log.d(TAG, "=== COMANDO OPENLABEL ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando OpenLabel enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste OpenLabel: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comando CPCL UNIVERSAL
+     */
+    fun printUniversalTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE CPCL UNIVERSAL ===")
+                
+                val universalCommand = CPCLCommands.generateUniversalTest()
+                Log.d(TAG, "Comando universal: $universalCommand")
+                
+                val data = universalCommand.toByteArray()
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                delay(300)
+                
+                Log.d(TAG, "=== COMANDO UNIVERSAL ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando universal enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste universal: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comando CPCL com inicialização
+     */
+    fun printInitializedTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE CPCL INICIALIZADO ===")
+                
+                val initializedCommand = CPCLCommands.generateInitializedTest()
+                Log.d(TAG, "Comando inicializado: $initializedCommand")
+                
+                val data = initializedCommand.toByteArray()
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                delay(300)
+                
+                Log.d(TAG, "=== COMANDO INICIALIZADO ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando inicializado enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste inicializado: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comando CPCL com reset
+     */
+    fun printResetTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE CPCL COM RESET ===")
+                
+                val resetCommand = CPCLCommands.generateResetTest()
+                Log.d(TAG, "Comando com reset: $resetCommand")
+                
+                val data = resetCommand.toByteArray()
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                delay(500) // Delay maior para reset
+                
+                Log.d(TAG, "=== COMANDO COM RESET ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando com reset enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste com reset: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comando CPCL 60x60mm universal
+     */
+    fun print60x60UniversalLabel(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE CPCL 60x60mm UNIVERSAL ===")
+                
+                val universal60x60Command = CPCLCommands.generate60x60mmUniversal()
+                Log.d(TAG, "Comando 60x60mm universal: $universal60x60Command")
+                
+                val data = universal60x60Command.toByteArray()
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                delay(400)
+                
+                Log.d(TAG, "=== COMANDO 60x60mm UNIVERSAL ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando 60x60mm universal enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste 60x60mm universal: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
 }
