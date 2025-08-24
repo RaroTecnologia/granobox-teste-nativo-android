@@ -41,6 +41,13 @@
             android:name=".BluetoothActivity"
             android:exported="false"
             android:theme="@style/Theme.ThermalPrinter" />
+        
+        <activity
+            android:name=".LogActivity"
+            android:exported="false"
+            android:label="Logs do Sistema"
+            android:parentActivityName=".MainActivity"
+            android:theme="@style/Theme.ThermalPrinter" />
             
     </application>
 

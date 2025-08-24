@@ -149,6 +149,11 @@ class MainActivity : AppCompatActivity() {
                 openBluetoothDevices()
             }
         }
+
+        // Botão ver logs
+        binding.btnViewLogs.setOnClickListener {
+            LogActivity.start(this)
+        }
         
         // Botão desconectar
         binding.btnDisconnect.setOnClickListener {
@@ -424,6 +429,10 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun addToLog(message: String) {
+        // Adicionar ao sistema de logs centralizado
+        LogActivity.addLog(message)
+        
+        // Manter compatibilidade com o log local
         val timestamp = java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())
         val logEntry = "[$timestamp] $message\n"
         
