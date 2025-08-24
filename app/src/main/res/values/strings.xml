@@ -18,6 +18,7 @@
     <string name="hint_print_text">Digite o texto para imprimir</string>
     <string name="btn_test_print">Imprimir Página de Teste</string>
     <string name="btn_print">Imprimir</string>
+    <string name="btn_test_label_60x60">Testar Etiqueta 60x60mm</string>
     
     <!-- Logs -->
     <string name="title_logs">Logs</string>

@@ -2,8 +2,10 @@ package com.example.thermalprinter
 
 object CPCLCommands {
     
-    // Comandos básicos CPCL
-    fun startForm(): String = "! 0 200 200 210 1\r\n"
+    // Comandos básicos CPCL para etiquetas 60x60mm
+    // 60mm = 236 dots (203 DPI)
+    // 60mm = 240 dots (203 DPI)
+    fun startForm(): String = "! 0 200 200 240 1\r\n"
     fun endForm(): String = "FORM\r\nPRINT\r\n"
     
     // Comandos de texto
@@ -56,21 +58,58 @@ object CPCLCommands {
     fun setTopMargin(margin: Int): String = "TOPMARGIN $margin\r\n"
     fun setBottomMargin(margin: Int): String = "BOTTOMMARGIN $margin\r\n"
     
-    // Templates pré-definidos
+    // Templates pré-definidos para etiquetas 60x60mm
     fun generateTestPage(): String {
         return buildString {
             append(startForm())
-            append(centerText(50, "PÁGINA DE TESTE", 16))
-            append(centerText(80, "Impressora Térmica", 12))
-            append(centerText(110, "Bluetooth", 12))
-            append(horizontalLine(50, 130, 300, 2))
-            append(text(50, 160, "Data: ${java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date())}", 10))
-            append(text(50, 180, "Hora: ${java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())}", 10))
-            append(text(50, 200, "Teste de impressão", 10))
-            append(text(50, 220, "CPCL Commands", 10))
-            append(horizontalLine(50, 250, 300, 1))
-            append(code128(50, 280, "TEST123", 40))
-            append(qrCode(250, 280, "https://github.com/RaroTecnologia"))
+            // Título centralizado
+            append(centerText(30, "TESTE", 16))
+            append(centerText(60, "60x60mm", 12))
+            
+            // Linha separadora
+            append(horizontalLine(20, 80, 200, 2))
+            
+            // Informações
+            append(text(20, 100, "Data: ${java.text.SimpleDateFormat("dd/MM/yyyy").format(java.util.Date())}", 8))
+            append(text(20, 115, "Hora: ${java.text.SimpleDateFormat("HH:mm:ss").format(java.util.Date())}", 8))
+            
+            // Código de barras
+            append(code128(20, 140, "TEST123", 30))
+            
+            // QR Code pequeno
+            append(qrCode(150, 140, "TEST", 3))
+            
+            append(endForm())
+        }
+    }
+    
+    fun generateLabel60x60(title: String, subtitle: String = "", barcode: String = "", qrData: String = ""): String {
+        return buildString {
+            append(startForm())
+            
+            // Título principal
+            if (title.isNotEmpty()) {
+                append(centerText(30, title, 16))
+            }
+            
+            // Subtítulo
+            if (subtitle.isNotEmpty()) {
+                append(centerText(60, subtitle, 10))
+            }
+            
+            // Linha separadora
+            append(horizontalLine(20, 80, 200, 1))
+            
+            // Código de barras
+            if (barcode.isNotEmpty()) {
+                append(code128(20, 100, barcode, 25))
+            }
+            
+            // QR Code
+            if (qrData.isNotEmpty()) {
+                append(qrCode(150, 100, qrData, 3))
+            }
+            
             append(endForm())
         }
     }

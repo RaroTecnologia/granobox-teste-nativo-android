@@ -245,6 +245,11 @@ class BluetoothManager(private val context: Context) {
         printCPCL(testPage)
     }
     
+    fun printLabel60x60(title: String, subtitle: String = "", barcode: String = "", qrData: String = "") {
+        val label = CPCLCommands.generateLabel60x60(title, subtitle, barcode, qrData)
+        printCPCL(label)
+    }
+    
     fun testConnection(callback: (Boolean) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {

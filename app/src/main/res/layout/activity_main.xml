@@ -159,6 +159,14 @@
                     style="@style/Widget.MaterialComponents.Button" />
 
             </LinearLayout>
+            
+            <Button
+                android:id="@+id/btnTestLabel60x60"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/btn_test_label_60x60"
+                android:layout_marginTop="8dp"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton" />
 
         </LinearLayout>
 

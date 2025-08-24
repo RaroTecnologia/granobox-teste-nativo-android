@@ -154,6 +154,11 @@ class MainActivity : AppCompatActivity() {
             printCustomText()
         }
         
+        // Botão testar etiqueta 60x60mm
+        binding.btnTestLabel60x60.setOnClickListener {
+            printTestLabel60x60()
+        }
+        
         updateBluetoothStatus()
     }
     
@@ -255,6 +260,22 @@ class MainActivity : AppCompatActivity() {
         
         addToLog("Imprimindo texto personalizado...")
         bluetoothManager.printText(text)
+    }
+    
+    private fun printTestLabel60x60() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        addToLog("Imprimindo etiqueta 60x60mm...")
+        bluetoothManager.printLabel60x60(
+            title = "TESTE",
+            subtitle = "60x60mm",
+            barcode = "12345",
+            qrData = "TEST123"
+        )
     }
     
     private fun addToLog(message: String) {
