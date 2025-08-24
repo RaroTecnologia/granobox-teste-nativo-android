@@ -375,26 +375,63 @@ class BluetoothManager(private val context: Context) {
     }
     
     /**
-     * Imprime etiqueta 60x60mm usando o protocolo apropriado
+     * Imprime etiqueta 60x60mm usando o protocolo selecionado
      */
     fun printLabel60x60(title: String, subtitle: String = "", barcode: String = "", qrData: String = "", callback: (Boolean, String?) -> Unit) {
-        if (niimbotPrinter != null && niimbotPrinter!!.isConnected()) {
-            Log.d(TAG, "🔍 Usando protocolo NIIMBOT para etiqueta")
-            niimbotPrinter!!.printLabel60x60(title, subtitle) { success, error ->
-                if (success && qrData.isNotEmpty()) {
-                    // Se há dados QR, imprimir também
-                    niimbotPrinter!!.printQR(qrData) { qrSuccess, qrError ->
-                        callback(qrSuccess, if (qrSuccess) "Etiqueta e QR impressos" else qrError)
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        // Respeitar o protocolo selecionado pelo usuário
+        when (selectedProtocol) {
+            PrinterProtocol.AUTO -> {
+                // Detecção automática (comportamento anterior)
+                if (niimbotPrinter != null && niimbotPrinter!!.isConnected()) {
+                    Log.d(TAG, "🔍 [AUTO] Usando protocolo NIIMBOT para etiqueta")
+                    niimbotPrinter!!.printLabel60x60(title, subtitle) { success, error ->
+                        if (success && qrData.isNotEmpty()) {
+                            niimbotPrinter!!.printQR(qrData) { qrSuccess, qrError ->
+                                callback(qrSuccess, if (qrSuccess) "Etiqueta e QR impressos" else qrError)
+                            }
+                        } else {
+                            callback(success, error)
+                        }
                     }
                 } else {
-                    callback(success, error)
+                    Log.d(TAG, "🔍 [AUTO] Usando protocolo CPCL para etiqueta")
+                    printLabel60x60Generic(title, subtitle, barcode, qrData, callback)
                 }
             }
-        } else if (isConnected()) {
-            Log.d(TAG, "🔍 Usando protocolo genérico para etiqueta")
-            printLabel60x60Generic(title, subtitle, barcode, qrData, callback)
-        } else {
-            callback(false, "Dispositivo não conectado")
+            PrinterProtocol.NIIMBOT -> {
+                Log.d(TAG, "🔍 [FORÇADO] Usando protocolo NIIMBOT para etiqueta")
+                val cpclCommands = CPCLCommands.generateLabel60x60(title, subtitle, barcode, qrData)
+                val niimbotCommands = convertCPCLToNiimbot(cpclCommands)
+                val data = niimbotCommands.toByteArray()
+                
+                CoroutineScope(Dispatchers.IO).launch {
+                    val success = sendDataWithRetry(data)
+                    withContext(Dispatchers.Main) {
+                        callback(success, if (success) "Etiqueta NIIMBOT impressa" else "Falha na impressão NIIMBOT")
+                    }
+                }
+            }
+            PrinterProtocol.TSPL -> {
+                Log.d(TAG, "🔍 [FORÇADO] Usando protocolo TSPL para etiqueta")
+                val tsplCommands = TSPLCommands.generateTextLabel(title, subtitle)
+                val data = tsplCommands.toByteArray()
+                
+                CoroutineScope(Dispatchers.IO).launch {
+                    val success = sendDataWithRetry(data)
+                    withContext(Dispatchers.Main) {
+                        callback(success, if (success) "Etiqueta TSPL impressa" else "Falha na impressão TSPL")
+                    }
+                }
+            }
+            PrinterProtocol.CPCL -> {
+                Log.d(TAG, "🔍 [FORÇADO] Usando protocolo CPCL para etiqueta")
+                printLabel60x60Generic(title, subtitle, barcode, qrData, callback)
+            }
         }
     }
     
@@ -683,7 +720,8 @@ class BluetoothManager(private val context: Context) {
         printCPCL(cpclCommands)
     }
     
-    fun printLabel60x60(title: String, subtitle: String = "", barcode: String = "", qrData: String = "") {
+    fun printLabel60x60Simple(title: String, subtitle: String = "", barcode: String = "", qrData: String = "") {
+        // Este método agora usa printCPCL que já respeita o protocolo selecionado
         val cpclCommands = CPCLCommands.generateLabel60x60(title, subtitle, barcode, qrData)
         printCPCL(cpclCommands)
     }
