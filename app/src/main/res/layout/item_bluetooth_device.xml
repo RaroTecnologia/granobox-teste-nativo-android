@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardElevation="2dp"
+    app:cardCornerRadius="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Nome do Dispositivo -->
+        <TextView
+            android:id="@+id/tvDeviceName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nome do Dispositivo"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Endereço MAC -->
+        <TextView
+            android:id="@+id/tvDeviceAddress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="00:00:00:00:00:00"
+            android:textSize="12sp"
+            android:textColor="@color/black"
+            android:fontFamily="monospace"
+            android:layout_marginBottom="4dp" />
+
+        <!-- Tipo do Dispositivo -->
+        <TextView
+            android:id="@+id/tvDeviceType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tipo: Desconhecido"
+            android:textSize="12sp"
+            android:textColor="@color/black"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Botão de Ação -->
+        <Button
+            android:id="@+id/btnAction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_connect"
+            android:textSize="14sp"
+            style="@style/Widget.MaterialComponents.Button" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

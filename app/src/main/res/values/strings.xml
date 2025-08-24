@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Impressora Térmica</string>
+    
+    <!-- MainActivity -->
+    <string name="title_main">Impressora Térmica Bluetooth</string>
+    <string name="bluetooth_status">Status Bluetooth</string>
+    <string name="bluetooth_enabled">Habilitado</string>
+    <string name="bluetooth_disabled">Desabilitado</string>
+    <string name="bluetooth_connected">Conectado</string>
+    <string name="bluetooth_disconnected">Desconectado</string>
+    <string name="btn_connect">Conectar</string>
+    <string name="btn_disconnect">Desconectar</string>
+    <string name="btn_bluetooth_settings">Configurações Bluetooth</string>
+    
+    <!-- Impressão -->
+    <string name="title_printing">Impressão</string>
+    <string name="hint_print_text">Digite o texto para imprimir</string>
+    <string name="btn_test_print">Imprimir Página de Teste</string>
+    <string name="btn_print">Imprimir</string>
+    
+    <!-- Logs -->
+    <string name="title_logs">Logs</string>
+    
+    <!-- BluetoothActivity -->
+    <string name="title_bluetooth_devices">Dispositivos Bluetooth</string>
+    <string name="btn_scan">Procurar</string>
+    <string name="btn_stop_scan">Parar Busca</string>
+    <string name="btn_back">Voltar</string>
+    <string name="scanning_status">Procurando dispositivos...</string>
+    <string name="scan_complete">Busca concluída</string>
+    <string name="no_devices_found">Nenhum dispositivo encontrado</string>
+    
+    <!-- Mensagens -->
+    <string name="bluetooth_required">Bluetooth é necessário para este app</string>
+    <string name="permissions_required">Permissões são necessárias</string>
+    <string name="location_permission_required">Permissão de localização é necessária para Bluetooth</string>
+    <string name="device_connected">Dispositivo conectado com sucesso</string>
+    <string name="device_disconnected">Dispositivo desconectado</string>
+    <string name="print_success">Impressão realizada com sucesso</string>
+    <string name="print_error">Erro na impressão</string>
+    <string name="no_device_connected">Nenhum dispositivo conectado</string>
+    <string name="connecting">Conectando...</string>
+    <string name="connection_failed">Falha na conexão</string>
+    
+    <!-- Estados -->
+    <string name="device_paired">Emparelhado</string>
+    <string name="device_pairing">Emparelhando...</string>
+    <string name="device_not_paired">Não emparelhado</string>
+    <string name="device_unknown">Desconhecido</string>
+    
+    <!-- Ações -->
+    <string name="action_connect">Conectar</string>
+    <string name="action_pair">Emparelhar</string>
+    <string name="action_disconnect">Desconectar</string>
+</resources>
