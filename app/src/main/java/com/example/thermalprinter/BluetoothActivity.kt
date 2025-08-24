@@ -205,17 +205,46 @@ class BluetoothActivity : AppCompatActivity() {
     }
     
     private fun connectToDevice(device: android.bluetooth.BluetoothDevice) {
-        Log.d(TAG, "Iniciando conexão com ${device.name} (${device.address})")
+        Log.d(TAG, "=== INICIANDO CONEXÃO ===")
+        Log.d(TAG, "Dispositivo: ${device.name} (${device.address})")
         Toast.makeText(this, "Conectando a ${device.name}...", Toast.LENGTH_SHORT).show()
         updateScanStatus("Conectando a ${device.name}...")
         
-        // Retornar resultado para MainActivity
-        val resultIntent = Intent().apply {
-            putExtra(EXTRA_DEVICE_ADDRESS, device.address)
-            putExtra(EXTRA_DEVICE_NAME, device.name)
+        // Criar BluetoothManager temporário para testar conexão
+        val tempBluetoothManager = ThermalBluetoothManager(this)
+        val bluetoothAdapter = bluetoothAdapter
+        
+        if (bluetoothAdapter != null) {
+            tempBluetoothManager.initialize(bluetoothAdapter)
+            
+            Log.d(TAG, "Testando conexão antes de retornar resultado...")
+            
+            tempBluetoothManager.connectToDevice(device) { success, error ->
+                Log.d(TAG, "Resultado da conexão: success=$success, error=$error")
+                
+                runOnUiThread {
+                    if (success) {
+                        Log.d(TAG, "✅ Conexão bem-sucedida, retornando resultado")
+                        
+                        // Retornar resultado para MainActivity
+                        val resultIntent = Intent().apply {
+                            putExtra(EXTRA_DEVICE_ADDRESS, device.address)
+                            putExtra(EXTRA_DEVICE_NAME, device.name)
+                        }
+                        setResult(RESULT_OK, resultIntent)
+                        finish()
+                        
+                    } else {
+                        Log.e(TAG, "❌ Falha na conexão: $error")
+                        Toast.makeText(this, "Falha na conexão: $error", Toast.LENGTH_LONG).show()
+                        updateScanStatus("Falha na conexão")
+                    }
+                }
+            }
+        } else {
+            Log.e(TAG, "BluetoothAdapter é null")
+            Toast.makeText(this, "Erro: Bluetooth não disponível", Toast.LENGTH_LONG).show()
         }
-        setResult(RESULT_OK, resultIntent)
-        finish()
     }
     
     private fun updateDeviceList() {
