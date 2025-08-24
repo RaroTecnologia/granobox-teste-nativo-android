@@ -7,7 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
-import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 
@@ -55,7 +55,7 @@ class PermissionManager(private val context: Context) {
         if (context is Activity) {
             // Para versões mais antigas do Android, usar requestPermissions diretamente
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                (context as Activity).requestPermissions(bluetoothPermissions, REQUEST_BLUETOOTH_PERMISSIONS)
+                context.requestPermissions(bluetoothPermissions, REQUEST_BLUETOOTH_PERMISSIONS)
             }
         }
     }
@@ -64,7 +64,7 @@ class PermissionManager(private val context: Context) {
         if (context is Activity) {
             // Para versões mais antigas do Android, usar requestPermissions diretamente
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                (context as Activity).requestPermissions(locationPermissions, REQUEST_LOCATION_PERMISSIONS)
+                context.requestPermissions(locationPermissions, REQUEST_LOCATION_PERMISSIONS)
             }
         }
     }
