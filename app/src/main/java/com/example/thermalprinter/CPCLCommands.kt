@@ -90,11 +90,15 @@ object CPCLCommands {
             // Título principal
             if (title.isNotEmpty()) {
                 append(centerText(30, title, 16))
+            } else {
+                // Título vazio
             }
             
             // Subtítulo
             if (subtitle.isNotEmpty()) {
                 append(centerText(60, subtitle, 10))
+            } else {
+                // Subtítulo vazio
             }
             
             // Linha separadora
@@ -103,11 +107,15 @@ object CPCLCommands {
             // Código de barras
             if (barcode.isNotEmpty()) {
                 append(code128(20, 100, barcode, 25))
+            } else {
+                // Código de barras vazio
             }
             
             // QR Code
             if (qrData.isNotEmpty()) {
                 append(qrCode(150, 100, qrData, 3))
+            } else {
+                // QR Code vazio
             }
             
             append(endForm())

@@ -1229,6 +1229,8 @@ class BluetoothManager(private val context: Context) {
                         append(subtitle.length.toChar())  // Tamanho do subtítulo
                         append(subtitle)  // Subtítulo
                         append(0x03.toChar())  // ETX
+                    } else {
+                        // Não fazer nada se não houver subtítulo
                     }
                     
                     // Comando de alimentar papel
