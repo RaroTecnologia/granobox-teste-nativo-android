@@ -186,6 +186,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnTestSimple.setOnClickListener { testSimpleCPCL() }
         binding.btnTestText.setOnClickListener { testTextCPCL() }
         binding.btnTestSimpleLabel.setOnClickListener { testSimpleLabel60x60() }
+        binding.btnUltraSimple.setOnClickListener { testUltraSimpleCPCL() }
+        binding.btnPrintOnly.setOnClickListener { testPrintOnlyCPCL() }
+        binding.btnFormOnly.setOnClickListener { testFormOnlyCPCL() }
         
         updateBluetoothStatus()
     }
@@ -513,6 +516,69 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     addToLog("❌ Falha na etiqueta simples: $error")
                     Toast.makeText(this, "Falha na etiqueta: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testUltraSimpleCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE ULTRA SIMPLES CPCL ===")
+        bluetoothManager.printUltraSimpleTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Teste ultra simples enviado com sucesso")
+                    Toast.makeText(this, "Ultra simples enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no teste ultra simples: $error")
+                    Toast.makeText(this, "Falha no teste: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testPrintOnlyCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE APENAS PRINT ===")
+        bluetoothManager.printPrintOnlyTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Comando PRINT enviado com sucesso")
+                    Toast.makeText(this, "PRINT enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no comando PRINT: $error")
+                    Toast.makeText(this, "Falha no PRINT: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testFormOnlyCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE APENAS FORM ===")
+        bluetoothManager.printFormOnlyTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Comando FORM enviado com sucesso")
+                    Toast.makeText(this, "FORM enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no comando FORM: $error")
+                    Toast.makeText(this, "Falha no FORM: $error", Toast.LENGTH_LONG).show()
                 }
             }
         }

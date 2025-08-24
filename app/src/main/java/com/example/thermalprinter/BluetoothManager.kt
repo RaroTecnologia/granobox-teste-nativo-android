@@ -553,4 +553,112 @@ class BluetoothManager(private val context: Context) {
             }
         }
     }
+
+    /**
+     * Testa comando CPCL ULTRA SIMPLES
+     */
+    fun printUltraSimpleTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE ULTRA SIMPLES CPCL ===")
+                
+                val ultraCommands = CPCLCommands.generateUltraSimpleTest()
+                Log.d(TAG, "Comandos ultra simples: $ultraCommands")
+
+                val data = ultraCommands.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+
+                outputStream?.write(data)
+                outputStream?.flush()
+                delay(100)
+
+                Log.d(TAG, "=== TESTE ULTRA SIMPLES ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Teste ultra simples enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste ultra simples: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comando CPCL apenas PRINT
+     */
+    fun printPrintOnlyTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE APENAS PRINT ===")
+                
+                val printCommand = CPCLCommands.generatePrintOnlyTest()
+                Log.d(TAG, "Comando PRINT: $printCommand")
+
+                val data = printCommand.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+
+                outputStream?.write(data)
+                outputStream?.flush()
+                delay(100)
+
+                Log.d(TAG, "=== COMANDO PRINT ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando PRINT enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no comando PRINT: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa comando CPCL apenas FORM
+     */
+    fun printFormOnlyTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE APENAS FORM ===")
+                
+                val formCommand = CPCLCommands.generateFormOnlyTest()
+                Log.d(TAG, "Comando FORM: $formCommand")
+
+                val data = formCommand.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+
+                outputStream?.write(data)
+                outputStream?.flush()
+                delay(100)
+
+                Log.d(TAG, "=== COMANDO FORM ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Comando FORM enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no comando FORM: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
 }

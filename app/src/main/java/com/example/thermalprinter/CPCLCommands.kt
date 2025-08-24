@@ -203,4 +203,37 @@ object CPCLCommands {
             append("PRINT\r\n")
         }
     }
+
+    /**
+     * Comando CPCL ULTRA SIMPLES - apenas um ponto
+     */
+    fun generateUltraSimpleTest(): String {
+        return buildString {
+            append("! 0 200 200 10 1\r\n")  // Form minúsculo
+            append("TEXT 4 0 5 5 X\r\n")    // Apenas um X
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
+
+    /**
+     * Comando CPCL apenas com PRINT (sem form)
+     */
+    fun generatePrintOnlyTest(): String {
+        return "PRINT\r\n"
+    }
+
+    /**
+     * Comando CPCL apenas com FORM (sem print)
+     */
+    fun generateFormOnlyTest(): String {
+        return "FORM\r\n"
+    }
+
+    /**
+     * Comando CPCL apenas com texto simples
+     */
+    fun generateTextOnlyTest(): String {
+        return "TEXT 4 0 5 5 TESTE\r\n"
+    }
 }
