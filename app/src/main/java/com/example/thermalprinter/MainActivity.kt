@@ -249,10 +249,9 @@ class MainActivity : AppCompatActivity() {
             binding.tvBluetoothStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
             binding.btnConnect.isEnabled = true
             binding.btnDisconnect.isEnabled = false
-            addToLog("⚠️ Definindo currentDevice como null")
-            currentDevice = null
-            addToLog("✗ Dispositivo desconectado")
-            addToLog("currentDevice após desconexão: $currentDevice")
+            addToLog("⚠️ Dispositivo desconectado")
+            addToLog("currentDevice mantido como: $currentDevice")
+            addToLog("✗ Dispositivo desconectado (mas ainda selecionado)")
         }
     }
     
