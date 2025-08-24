@@ -181,14 +181,11 @@ class MainActivity : AppCompatActivity() {
         }
         
         // Botão descobrir UUIDs
-        binding.btnDiscoverUUIDs.setOnClickListener {
-            discoverUUIDs()
-        }
-        
-        // Botão status do dispositivo
-        binding.btnStatus.setOnClickListener {
-            showDeviceStatus()
-        }
+        binding.btnDiscoverUUIDs.setOnClickListener { discoverUUIDs() }
+        binding.btnStatus.setOnClickListener { showDeviceStatus() }
+        binding.btnTestSimple.setOnClickListener { testSimpleCPCL() }
+        binding.btnTestText.setOnClickListener { testTextCPCL() }
+        binding.btnTestSimpleLabel.setOnClickListener { testSimpleLabel60x60() }
         
         updateBluetoothStatus()
     }
@@ -455,5 +452,69 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         val bluetoothManager = thermalBluetoothManager
         bluetoothManager.cleanup()
+    }
+
+    private fun testSimpleCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE CPCL SIMPLES ===")
+        bluetoothManager.printSimpleTest { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Teste simples enviado com sucesso")
+                    Toast.makeText(this, "Teste simples enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no teste simples: $error")
+                    Toast.makeText(this, "Falha no teste: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testTextCPCL() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val testText = "TESTE123"
+        addToLog("=== TESTE CPCL TEXTO: $testText ===")
+        bluetoothManager.printTextOnlyTest(testText) { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Teste de texto enviado com sucesso")
+                    Toast.makeText(this, "Texto enviado!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha no teste de texto: $error")
+                    Toast.makeText(this, "Falha no teste: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun testSimpleLabel60x60() {
+        val bluetoothManager = thermalBluetoothManager
+        if (!bluetoothManager.isConnected()) {
+            Toast.makeText(this, "Nenhum dispositivo conectado", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        addToLog("=== TESTE ETIQUETA SIMPLES 60x60 ===")
+        bluetoothManager.printSimpleLabel60x60 { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Etiqueta simples enviada com sucesso")
+                    Toast.makeText(this, "Etiqueta enviada!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha na etiqueta simples: $error")
+                    Toast.makeText(this, "Falha na etiqueta: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 }

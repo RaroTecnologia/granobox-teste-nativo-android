@@ -165,4 +165,42 @@ object CPCLCommands {
             append(endForm())
         }
     }
+
+    /**
+     * Comando de teste muito simples para verificar se a impressora responde
+     */
+    fun generateSimpleTest(): String {
+        return buildString {
+            append("! 0 200 200 50 1\r\n")  // Form muito pequeno
+            append("TEXT 4 0 10 20 TESTE SIMPLES\r\n")  // Texto básico
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
+
+    /**
+     * Comando de teste com apenas texto
+     */
+    fun generateTextOnlyTest(text: String): String {
+        return buildString {
+            append("! 0 200 200 50 1\r\n")
+            append("TEXT 4 0 10 20 $text\r\n")
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
+
+    /**
+     * Comando de teste com etiqueta 60x60mm mais simples
+     */
+    fun generateSimpleLabel60x60(): String {
+        return buildString {
+            append("! 0 200 200 240 1\r\n")  // 60x60mm = 240 dots
+            append("TEXT 4 0 10 30 TESTE\r\n")
+            append("TEXT 4 0 10 50 60x60mm\r\n")
+            append("LINE 1 10 80 230 80\r\n")
+            append("FORM\r\n")
+            append("PRINT\r\n")
+        }
+    }
 }

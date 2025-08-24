@@ -429,4 +429,128 @@ class BluetoothManager(private val context: Context) {
     fun cleanup() {
         disconnect()
     }
+
+    /**
+     * Testa impressão com comando CPCL muito simples
+     */
+    fun printSimpleTest(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE SIMPLES CPCL ===")
+                Log.d(TAG, "Status da conexão:")
+                Log.d(TAG, "- isConnected: ${isConnected()}")
+                Log.d(TAG, "- Socket conectado: ${bluetoothSocket?.isConnected}")
+                Log.d(TAG, "- Output stream: ${outputStream != null}")
+
+                val simpleCommands = CPCLCommands.generateSimpleTest()
+                Log.d(TAG, "Comandos simples: $simpleCommands")
+
+                val data = simpleCommands.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+
+                // Enviar em chunks pequenos
+                val chunkSize = 512
+                var offset = 0
+                while (offset < data.size) {
+                    val end = minOf(offset + chunkSize, data.size)
+                    val chunk = data.copyOfRange(offset, end)
+                    outputStream?.write(chunk)
+                    outputStream?.flush()
+                    Log.d(TAG, "Chunk enviado: ${chunk.size} bytes (${offset + chunk.size}/${data.size})")
+                    delay(50) // Delay menor entre chunks
+                    offset = end
+                }
+
+                delay(200) // Delay final menor
+                Log.d(TAG, "=== TESTE SIMPLES ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Teste simples enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste simples: ${e.message}")
+                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa impressão com comando CPCL de texto simples
+     */
+    fun printTextOnlyTest(text: String, callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE TEXTO SIMPLES CPCL ===")
+                Log.d(TAG, "Texto: $text")
+
+                val textCommands = CPCLCommands.generateTextOnlyTest(text)
+                Log.d(TAG, "Comandos: $textCommands")
+
+                val data = textCommands.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+
+                outputStream?.write(data)
+                outputStream?.flush()
+                delay(200)
+
+                Log.d(TAG, "=== TESTE TEXTO ENVIADO ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Texto enviado")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro no teste de texto: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Testa impressão com etiqueta 60x60mm simplificada
+     */
+    fun printSimpleLabel60x60(callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== TESTE ETIQUETA SIMPLES 60x60 ===")
+
+                val labelCommands = CPCLCommands.generateSimpleLabel60x60()
+                Log.d(TAG, "Comandos: $labelCommands")
+
+                val data = labelCommands.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+
+                outputStream?.write(data)
+                outputStream?.flush()
+                delay(300)
+
+                Log.d(TAG, "=== ETIQUETA SIMPLES ENVIADA ===")
+                withContext(Dispatchers.Main) {
+                    callback(true, "Etiqueta simples enviada")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro na etiqueta simples: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
 }
