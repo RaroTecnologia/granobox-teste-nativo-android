@@ -13,6 +13,13 @@ import androidx.core.content.ContextCompat
 import com.example.thermalprinter.databinding.ActivityMainBinding
 import com.example.thermalprinter.BluetoothManager as ThermalBluetoothManager
 
+enum class PrinterProtocol {
+    AUTO,
+    NIIMBOT,
+    TSPL,
+    CPCL
+}
+
 class MainActivity : AppCompatActivity() {
     
     companion object {
@@ -26,6 +33,7 @@ class MainActivity : AppCompatActivity() {
     
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var currentDevice: String? = null
+    private var selectedProtocol: PrinterProtocol = PrinterProtocol.AUTO
     
     private val enableBluetoothLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -154,6 +162,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnViewLogs.setOnClickListener {
             LogActivity.start(this)
         }
+
+        // Seletor de protocolo
+        setupProtocolSelector()
         
         // Botão desconectar
         binding.btnDisconnect.setOnClickListener {
@@ -428,6 +439,43 @@ class MainActivity : AppCompatActivity() {
         addToLog("=== FIM DO STATUS ===")
     }
     
+    private fun setupProtocolSelector() {
+        binding.radioGroupProtocol.setOnCheckedChangeListener { _, checkedId ->
+            selectedProtocol = when (checkedId) {
+                binding.radioAuto.id -> PrinterProtocol.AUTO
+                binding.radioNiimbot.id -> PrinterProtocol.NIIMBOT
+                binding.radioTSPL.id -> PrinterProtocol.TSPL
+                binding.radioCPCL.id -> PrinterProtocol.CPCL
+                else -> PrinterProtocol.AUTO
+            }
+            
+            updateProtocolInfo()
+            addToLog("🔧 Protocolo alterado para: ${getProtocolName(selectedProtocol)}")
+        }
+        
+        // Configurar protocolo inicial
+        updateProtocolInfo()
+    }
+    
+    private fun updateProtocolInfo() {
+        val info = when (selectedProtocol) {
+            PrinterProtocol.AUTO -> "🤖 Detecção automática ativada - O app escolherá o melhor protocolo"
+            PrinterProtocol.NIIMBOT -> "📱 NIIMBOT - Para impressoras NIIMBOT (protocolo nativo)"
+            PrinterProtocol.TSPL -> "🖨️ TSPL - Para impressoras KP IM-608 e similares"
+            PrinterProtocol.CPCL -> "📄 CPCL - Para impressoras térmicas genéricas"
+        }
+        binding.tvProtocolInfo.text = info
+    }
+    
+    private fun getProtocolName(protocol: PrinterProtocol): String {
+        return when (protocol) {
+            PrinterProtocol.AUTO -> "AUTO"
+            PrinterProtocol.NIIMBOT -> "NIIMBOT"
+            PrinterProtocol.TSPL -> "TSPL"
+            PrinterProtocol.CPCL -> "CPCL"
+        }
+    }
+
     private fun addToLog(message: String) {
         // Adicionar ao sistema de logs centralizado
         LogActivity.addLog(message)

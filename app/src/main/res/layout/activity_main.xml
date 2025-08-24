@@ -103,6 +103,84 @@
 
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Seletor de Protocolo -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardProtocolSelector"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        app:cardElevation="4dp"
+        app:cardCornerRadius="8dp"
+        app:layout_constraintTop_toBottomOf="@id/cardBluetoothStatus"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔧 Protocolo de Impressão"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="12dp" />
+
+            <RadioGroup
+                android:id="@+id/radioGroupProtocol"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/radioAuto"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🤖 Auto"
+                    android:checked="true" />
+
+                <RadioButton
+                    android:id="@+id/radioNiimbot"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="📱 NIIMBOT" />
+
+                <RadioButton
+                    android:id="@+id/radioTSPL"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🖨️ TSPL" />
+
+                <RadioButton
+                    android:id="@+id/radioCPCL"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="📄 CPCL" />
+
+            </RadioGroup>
+
+            <TextView
+                android:id="@+id/tvProtocolInfo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🤖 Detecção automática ativada - O app escolherá o melhor protocolo"
+                android:textSize="12sp"
+                android:textStyle="italic"
+                android:layout_marginTop="8dp"
+                android:background="@android:color/transparent"
+                android:padding="8dp" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
     <!-- Impressão -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardPrinting"
@@ -111,7 +189,7 @@
         android:layout_marginTop="16dp"
         app:cardElevation="4dp"
         app:cardCornerRadius="8dp"
-        app:layout_constraintTop_toBottomOf="@id/cardBluetoothStatus"
+        app:layout_constraintTop_toBottomOf="@id/cardProtocolSelector"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 

@@ -1,5 +1,98 @@
 package com.example.thermalprinter
 
+/**
+ * Utilitário para gerar comandos TSPL para impressoras KP IM-608 e similares
+ */
+object TSPLCommands {
+    
+    /**
+     * Comando de inicialização TSPL
+     */
+    fun initialize(): String {
+        return buildString {
+            append("SIZE 60 mm, 60 mm\r\n")  // Tamanho da etiqueta 60x60mm
+            append("GAP 2 mm, 0 mm\r\n")    // Gap entre etiquetas
+            append("DIRECTION 1\r\n")        // Direção de impressão
+            append("REFERENCE 0,0\r\n")      // Ponto de referência
+            append("OFFSET 0 mm\r\n")        // Offset
+            append("SET PEEL OFF\r\n")       // Modo peel off
+            append("SET CUTTER OFF\r\n")     // Cortador desligado
+            append("SET PARTIAL_CUTTER OFF\r\n") // Cortador parcial desligado
+            append("SET TEAR ON\r\n")        // Modo tear on
+            append("CLS\r\n")                // Limpar buffer
+        }
+    }
+    
+    /**
+     * Comando de texto TSPL
+     */
+    fun text(x: Int, y: Int, font: String, rotation: Int, xMul: Int, yMul: Int, text: String): String {
+        return "TEXT $x,$y,\"$font\",$rotation,$xMul,$yMul,\"$text\"\r\n"
+    }
+    
+    /**
+     * Comando de QR Code TSPL
+     */
+    fun qrCode(x: Int, y: Int, eccLevel: String, cellWidth: Int, mode: String, rotation: Int, data: String): String {
+        return "QRCODE $x,$y,$eccLevel,$cellWidth,$mode,$rotation,\"$data\"\r\n"
+    }
+    
+    /**
+     * Comando de linha TSPL
+     */
+    fun line(x1: Int, y1: Int, x2: Int, y2: Int, width: Int): String {
+        return "BAR $x1,$y1,$width,${y2-y1}\r\n"
+    }
+    
+    /**
+     * Comando de impressão TSPL
+     */
+    fun print(copies: Int = 1): String {
+        return "PRINT $copies\r\n"
+    }
+    
+    /**
+     * Gera etiqueta de teste 60x60mm TSPL
+     */
+    fun generateTestLabel60x60(): String {
+        return buildString {
+            append(initialize())
+            append(text(50, 50, "3", 0, 1, 1, "TESTE TSPL"))
+            append(text(30, 100, "2", 0, 1, 1, "KP IM-608"))
+            append(text(40, 150, "1", 0, 1, 1, "60x60mm"))
+            append(line(20, 200, 200, 200, 2))
+            append(qrCode(150, 220, "M", 3, "A", 0, "TSPL-TEST"))
+            append(print(1))
+        }
+    }
+    
+    /**
+     * Gera etiqueta com texto personalizado TSPL
+     */
+    fun generateTextLabel(title: String, subtitle: String = ""): String {
+        return buildString {
+            append(initialize())
+            append(text(30, 50, "4", 0, 1, 1, title))
+            
+            if (subtitle.isNotEmpty()) {
+                append(text(40, 120, "2", 0, 1, 1, subtitle))
+            } else {
+                // Subtítulo vazio
+            }
+            
+            append(text(60, 200, "1", 0, 1, 1, "TSPL"))
+            append(print(1))
+        }
+    }
+    
+    /**
+     * Comando de alimentação de papel TSPL
+     */
+    fun feed(dots: Int): String {
+        return "FEED $dots\r\n"
+    }
+}
+
 object CPCLCommands {
     
     // Comandos básicos CPCL para etiquetas 60x60mm
