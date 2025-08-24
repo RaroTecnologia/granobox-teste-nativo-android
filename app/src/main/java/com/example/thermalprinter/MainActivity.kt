@@ -302,7 +302,17 @@ class MainActivity : AppCompatActivity() {
         }
         
         addToLog("Imprimindo texto personalizado...")
-        bluetoothManager.printText(text)
+        bluetoothManager.printText(text) { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Texto impresso com sucesso")
+                    Toast.makeText(this, "Texto impresso!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha na impressão: $error")
+                    Toast.makeText(this, "Falha na impressão: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
     
     private fun printTestLabel60x60() {
@@ -318,7 +328,17 @@ class MainActivity : AppCompatActivity() {
             subtitle = "60x60mm",
             barcode = "12345",
             qrData = "TEST123"
-        )
+        ) { success, error ->
+            runOnUiThread {
+                if (success) {
+                    addToLog("✅ Etiqueta impressa com sucesso")
+                    Toast.makeText(this, "Etiqueta impressa!", Toast.LENGTH_SHORT).show()
+                } else {
+                    addToLog("❌ Falha na etiqueta: $error")
+                    Toast.makeText(this, "Falha na etiqueta: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
     
     private fun testConnection() {
@@ -598,15 +618,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         addToLog("=== CAPTURANDO COMANDOS CPCL ===")
-        bluetoothManager.captureCPCLCommands { success, error ->
+        bluetoothManager.captureCPCLCommands { result ->
             runOnUiThread {
-                if (success) {
-                    addToLog("✅ Comandos CPCL capturados com sucesso")
-                    Toast.makeText(this, "Comandos CPCL capturados!", Toast.LENGTH_SHORT).show()
-                } else {
-                    addToLog("❌ Falha ao capturar comandos CPCL: $error")
-                    Toast.makeText(this, "Falha ao capturar comandos: $error", Toast.LENGTH_LONG).show()
-                }
+                addToLog("✅ Comandos CPCL capturados: $result")
+                Toast.makeText(this, "Comandos CPCL capturados!", Toast.LENGTH_SHORT).show()
             }
         }
     }

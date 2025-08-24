@@ -249,6 +249,13 @@ class BluetoothManager(private val context: Context) {
     }
     
     /**
+     * Verifica se está conectado
+     */
+    fun isConnected(): Boolean {
+        return bluetoothSocket?.isConnected == true && outputStream != null
+    }
+    
+    /**
      * Desconecta do dispositivo
      */
     fun disconnect() {
@@ -268,13 +275,6 @@ class BluetoothManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao desconectar: ${e.message}")
         }
-    }
-    
-    /**
-     * Verifica se está conectado
-     */
-    fun isConnected(): Boolean {
-        return bluetoothSocket?.isConnected == true && outputStream != null
     }
     
     /**
@@ -316,55 +316,137 @@ class BluetoothManager(private val context: Context) {
         }
     }
     
-    fun printCPCL(cpclCommands: String) {
-        Log.d(TAG, "=== INICIANDO IMPRESSÃO CPCL ===")
-        
+    /**
+     * Imprime texto usando protocolo genérico (CPCL)
+     */
+    private fun printTextGeneric(text: String, callback: (Boolean, String?) -> Unit) {
         if (!isConnected()) {
-            Log.e(TAG, "Dispositivo não conectado para impressão")
-            onPrintResult?.invoke(false, "Dispositivo não conectado")
+            callback(false, "Dispositivo não conectado")
             return
         }
         
-        Log.d(TAG, "Status da conexão:")
-        Log.d(TAG, "- isConnected: $isConnected")
-        Log.d(TAG, "- Socket conectado: ${bluetoothSocket?.isConnected}")
-        Log.d(TAG, "- Output stream: ${outputStream != null}")
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "Enviando texto: $text")
+                
+                val data = text.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+                
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                delay(500)
+                
+                Log.d(TAG, "Texto enviado com sucesso: $text")
+                
+                withContext(Dispatchers.Main) {
+                    callback(true, null)
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro ao imprimir texto: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro ao imprimir: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    /**
+     * Imprime etiqueta 60x60mm usando protocolo genérico (CPCL)
+     */
+    private fun printLabel60x60Generic(title: String, subtitle: String, barcode: String, qrData: String, callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                Log.d(TAG, "=== INICIANDO IMPRESSÃO CPCL ===")
+                Log.d(TAG, "Status da conexão:")
+                Log.d(TAG, "- isConnected: ${isConnected()}")
+                Log.d(TAG, "- Socket conectado: ${bluetoothSocket?.isConnected}")
+                Log.d(TAG, "- Output stream: ${outputStream != null}")
+                
+                val cpclCommands = CPCLCommands.generateLabel60x60(title, subtitle, barcode, qrData)
                 Log.d(TAG, "Enviando comandos CPCL...")
                 Log.d(TAG, "Comandos: $cpclCommands")
-                
-                // Verificar novamente se está conectado
-                if (bluetoothSocket?.isConnected != true || outputStream == null) {
-                    Log.e(TAG, "Conexão perdida durante a impressão")
-                    throw IOException("Conexão perdida durante a impressão")
-                }
                 
                 val data = cpclCommands.toByteArray()
                 Log.d(TAG, "Enviando ${data.size} bytes")
                 
-                // Enviar dados em chunks para evitar buffer overflow
+                // Enviar em chunks
                 val chunkSize = 1024
                 var offset = 0
-                
                 while (offset < data.size) {
                     val end = minOf(offset + chunkSize, data.size)
                     val chunk = data.copyOfRange(offset, end)
-                    
-                    Log.d(TAG, "Enviando chunk ${offset/chunkSize + 1}: ${chunk.size} bytes")
                     outputStream?.write(chunk)
                     outputStream?.flush()
-                    
                     Log.d(TAG, "Chunk enviado: ${chunk.size} bytes (${offset + chunk.size}/${data.size})")
-                    
-                    // Aguardar um pouco entre chunks
                     delay(100)
                     offset = end
                 }
                 
-                // Aguardar um pouco para a impressora processar
-                Log.d(TAG, "Aguardando processamento da impressora...")
+                delay(500)
+                
+                Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
+                Log.d(TAG, "Total de bytes enviados: ${data.size}")
+                
+                withContext(Dispatchers.Main) {
+                    callback(true, null)
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro na impressão CPCL: ${e.message}")
+                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
+                
+                // Tentar reconectar se a conexão foi perdida
+                if (e.message?.contains("Conexão perdida") == true) {
+                    disconnect()
+                }
+                
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro na impressão: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    fun printCPCL(cpclCommands: String) {
+        if (!isConnected()) {
+            onPrintResult?.invoke(false, "Dispositivo não conectado")
+            return
+        }
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== INICIANDO IMPRESSÃO CPCL ===")
+                Log.d(TAG, "Status da conexão:")
+                Log.d(TAG, "- isConnected: ${isConnected()}")
+                Log.d(TAG, "- Socket conectado: ${bluetoothSocket?.isConnected}")
+                Log.d(TAG, "- Output stream: ${outputStream != null}")
+                
+                Log.d(TAG, "Enviando comandos CPCL...")
+                Log.d(TAG, "Comandos: $cpclCommands")
+                
+                val data = cpclCommands.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes")
+                
+                // Enviar em chunks
+                val chunkSize = 1024
+                var offset = 0
+                while (offset < data.size) {
+                    val end = minOf(offset + chunkSize, data.size)
+                    val chunk = data.copyOfRange(offset, end)
+                    outputStream?.write(chunk)
+                    outputStream?.flush()
+                    Log.d(TAG, "Chunk enviado: ${chunk.size} bytes (${offset + chunk.size}/${data.size})")
+                    delay(100)
+                    offset = end
+                }
+                
                 delay(500)
                 
                 Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
@@ -374,57 +456,45 @@ class BluetoothManager(private val context: Context) {
                     onPrintResult?.invoke(true, null)
                 }
                 
-            } catch (e: IOException) {
-                Log.e(TAG, "=== ERRO AO IMPRIMIR CPCL ===")
-                Log.e(TAG, "Erro: ${e.message}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro na impressão CPCL: ${e.message}")
                 Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
                 
                 // Tentar reconectar se a conexão foi perdida
                 if (e.message?.contains("Conexão perdida") == true) {
-                    Log.d(TAG, "Tentando desconectar devido à perda de conexão")
                     disconnect()
                 }
                 
                 withContext(Dispatchers.Main) {
-                    onPrintResult?.invoke(false, "Erro ao imprimir CPCL: ${e.message}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "=== ERRO INESPERADO NA IMPRESSÃO ===")
-                Log.e(TAG, "Erro: ${e.message}")
-                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                
-                withContext(Dispatchers.Main) {
-                    onPrintResult?.invoke(false, "Erro inesperado: ${e.message}")
+                    onPrintResult?.invoke(false, "Erro na impressão: ${e.message}")
                 }
             }
         }
     }
     
     fun printTestPage() {
-        val testPage = CPCLCommands.generateTestPage()
-        printCPCL(testPage)
+        val cpclCommands = CPCLCommands.generateTestPage()
+        printCPCL(cpclCommands)
     }
     
     fun printLabel60x60(title: String, subtitle: String = "", barcode: String = "", qrData: String = "") {
-        val label = CPCLCommands.generateLabel60x60(title, subtitle, barcode, qrData)
-        printCPCL(label)
+        val cpclCommands = CPCLCommands.generateLabel60x60(title, subtitle, barcode, qrData)
+        printCPCL(cpclCommands)
     }
     
     fun testConnection(callback: (Boolean) -> Unit) {
-        Log.d(TAG, "=== TESTE DE CONEXÃO ===")
-        Log.d(TAG, "Status atual:")
-        Log.d(TAG, "- isConnected: $isConnected")
-        Log.d(TAG, "- SPP_UUID: $SPP_UUID")
-        
         CoroutineScope(Dispatchers.IO).launch {
             try {
+                Log.d(TAG, "=== TESTE DE CONEXÃO ===")
+                Log.d(TAG, "Status atual:")
+                Log.d(TAG, "- isConnected: ${isConnected()}")
+                Log.d(TAG, "- SPP_UUID: $SPP_UUID")
+                
                 if (isConnected()) {
                     Log.d(TAG, "Conexão ativa, testando envio...")
                     
-                    // Tentar enviar um comando de teste simples
-                    val testCommand = "\r\n"
-                    Log.d(TAG, "Enviando comando de teste: '$testCommand'")
-                    
+                    // Enviar comando de teste simples
+                    val testCommand = "TESTE"
                     outputStream?.write(testCommand.toByteArray())
                     outputStream?.flush()
                     
@@ -432,7 +502,6 @@ class BluetoothManager(private val context: Context) {
                     delay(100)
                     
                     Log.d(TAG, "=== TESTE DE CONEXÃO SUCESSO ===")
-                    
                     withContext(Dispatchers.Main) {
                         callback(true)
                     }
@@ -443,10 +512,7 @@ class BluetoothManager(private val context: Context) {
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "=== TESTE DE CONEXÃO FALHOU ===")
-                Log.e(TAG, "Erro: ${e.message}")
-                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                
+                Log.e(TAG, "Erro no teste de conexão: ${e.message}")
                 withContext(Dispatchers.Main) {
                     callback(false)
                 }
@@ -466,49 +532,50 @@ class BluetoothManager(private val context: Context) {
     }
     
     fun discoverDeviceUUIDs(device: BluetoothDevice, callback: (List<UUID>) -> Unit) {
-        Log.d(TAG, "=== DESCOBRINDO UUIDs DO DISPOSITIVO ===")
-        Log.d(TAG, "Dispositivo: ${device.name} (${device.address})")
-        
         CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val supportedUUIDs = mutableListOf<UUID>()
-                
-                // Tentar conectar com cada UUID comum
-                COMMON_PRINTER_UUIDS.forEach { uuid ->
-                    try {
-                        Log.d(TAG, "Testando UUID: $uuid")
-                        
-                        val testSocket = device.createRfcommSocketToServiceRecord(uuid)
-                        testSocket.connect()
-                        
-                        if (testSocket.isConnected) {
-                            Log.d(TAG, "✅ UUID suportado: $uuid")
-                            supportedUUIDs.add(uuid)
-                            testSocket.close()
-                        } else {
-                            Log.d(TAG, "❌ UUID não suportado: $uuid")
-                        }
-                        
-                    } catch (e: Exception) {
-                        Log.d(TAG, "❌ UUID falhou: $uuid - ${e.message}")
+            val supportedUUIDs = mutableListOf<UUID>()
+            
+            // UUIDs comuns para impressoras térmicas
+            val commonUUIDs = listOf(
+                UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"), // SPP Padrão
+                UUID.fromString("00001108-0000-1000-8000-00805F9B34FB"), // HID
+                UUID.fromString("0000110A-0000-1000-8000-00805F9B34FB"), // Audio
+                UUID.fromString("0000110B-0000-1000-8000-00805F9B34FB"), // Audio
+                UUID.fromString("0000110C-0000-1000-8000-00805F9B34FB"), // Audio
+                UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB"), // Audio
+                UUID.fromString("0000110F-0000-1000-8000-00805F9B34FB"), // Audio
+                UUID.fromString("0000111E-0000-1000-8000-00805F9B34FB"), // Handsfree
+                UUID.fromString("00001200-0000-1000-8000-00805F9B34FB"), // PnP Information
+                UUID.fromString("00001800-0000-1000-8000-00805F9B34FB"), // Generic Access
+                UUID.fromString("00001801-0000-1000-8000-00805F9B34FB")  // Generic Attribute
+            )
+            
+            commonUUIDs.forEach { uuid ->
+                try {
+                    Log.d(TAG, "Testando UUID: $uuid")
+                    val testSocket = device.createRfcommSocketToServiceRecord(uuid)
+                    testSocket.connect()
+                    
+                    if (testSocket.isConnected) {
+                        Log.d(TAG, "✅ UUID suportado: $uuid")
+                        supportedUUIDs.add(uuid)
+                        testSocket.close()
+                    } else {
+                        Log.d(TAG, "❌ UUID falhou: $uuid - socket não conectado")
                     }
+                } catch (e: Exception) {
+                    Log.d(TAG, "❌ UUID falhou: $uuid - ${e.message}")
                 }
-                
-                Log.d(TAG, "=== UUIDs DESCOBERTOS ===")
-                Log.d(TAG, "Total: ${supportedUUIDs.size}")
-                supportedUUIDs.forEach { uuid ->
-                    Log.d(TAG, "✅ $uuid")
-                }
-                
-                withContext(Dispatchers.Main) {
-                    callback(supportedUUIDs)
-                }
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Erro ao descobrir UUIDs: ${e.message}")
-                withContext(Dispatchers.Main) {
-                    callback(emptyList())
-                }
+            }
+            
+            Log.d(TAG, "=== UUIDs DESCOBERTOS ===")
+            Log.d(TAG, "Total: ${supportedUUIDs.size}")
+            supportedUUIDs.forEach { uuid ->
+                Log.d(TAG, "✅ $uuid")
+            }
+            
+            withContext(Dispatchers.Main) {
+                callback(supportedUUIDs)
             }
         }
     }
@@ -518,7 +585,7 @@ class BluetoothManager(private val context: Context) {
     }
 
     /**
-     * Testa impressão com comando CPCL muito simples
+     * Testa comando CPCL muito simples
      */
     fun printSimpleTest(callback: (Boolean, String?) -> Unit) {
         if (!isConnected()) {
@@ -569,7 +636,7 @@ class BluetoothManager(private val context: Context) {
     }
 
     /**
-     * Testa impressão com comando CPCL de texto simples
+     * Testa comando CPCL de texto simples
      */
     fun printTextOnlyTest(text: String, callback: (Boolean, String?) -> Unit) {
         if (!isConnected()) {
@@ -606,7 +673,7 @@ class BluetoothManager(private val context: Context) {
     }
 
     /**
-     * Testa impressão com etiqueta 60x60mm simplificada
+     * Testa comando CPCL com etiqueta 60x60mm simplificada
      */
     fun printSimpleLabel60x60(callback: (Boolean, String?) -> Unit) {
         if (!isConnected()) {
