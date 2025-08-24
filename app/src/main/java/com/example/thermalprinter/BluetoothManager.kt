@@ -9,33 +9,28 @@ import kotlinx.coroutines.*
 import java.io.IOException
 import java.io.OutputStream
 import java.util.*
+import com.example.thermalprinter.NiimbotPrinter
 
 class BluetoothManager(private val context: Context) {
     
     companion object {
         private const val TAG = "BluetoothManager"
-        private val SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        private const val SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
         
-        // UUIDs comuns para impressoras térmicas
-        private val COMMON_PRINTER_UUIDS = listOf(
-            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"), // SPP Padrão
-            UUID.fromString("00001108-0000-1000-8000-00805F9B34FB"), // HID
-            UUID.fromString("0000110A-0000-1000-8000-00805F9B34FB"), // Audio
-            UUID.fromString("0000110B-0000-1000-8000-00805F9B34FB"), // Audio
-            UUID.fromString("0000110C-0000-1000-8000-00805F9B34FB"), // Audio
-            UUID.fromString("0000110E-0000-1000-8000-00805F9B34FB"), // Audio
-            UUID.fromString("0000110F-0000-1000-8000-00805F9B34FB"), // Audio
-            UUID.fromString("0000111E-0000-1000-8000-00805F9B34FB"), // Handsfree
-            UUID.fromString("00001200-0000-1000-8000-00805F9B34FB"), // PnP Information
-            UUID.fromString("00001800-0000-1000-8000-00805F9B34FB"), // Generic Access
-            UUID.fromString("00001801-0000-1000-8000-00805F9B34FB")  // Generic Attribute
+        // UUIDs específicos da NIIMBOT
+        private val NIIMBOT_UUIDS = listOf(
+            "0000FFE0-0000-1000-8000-00805F9B34FB",  // NIIMBOT comum
+            "0000FFE1-0000-1000-8000-00805F9B34FB"   // NIIMBOT serviço
         )
     }
     
     private var bluetoothAdapter: BluetoothAdapter? = null
     private var bluetoothSocket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
-    private var isConnected = false
+    private var currentDevice: BluetoothDevice? = null
+    
+    // Instância da impressora NIIMBOT
+    private var niimbotPrinter: NiimbotPrinter? = null
     
     // Callbacks
     var onConnectionStateChanged: ((Boolean) -> Unit)? = null
@@ -54,95 +49,36 @@ class BluetoothManager(private val context: Context) {
         return bluetoothAdapter?.isEnabled == true
     }
     
-    fun connectToDevice(device: BluetoothDevice, callback: (Boolean, String?) -> Unit) {
-        if (!isBluetoothEnabled()) {
-            Log.e(TAG, "Bluetooth não está habilitado")
-            callback(false, "Bluetooth não está habilitado")
-            return
+    /**
+     * Verifica se o dispositivo é uma NIIMBOT
+     */
+    private fun isNiimbotPrinter(device: BluetoothDevice): Boolean {
+        val deviceName = device.name?.lowercase() ?: ""
+        val deviceAddress = device.address.uppercase()
+        
+        // Verificar por nome
+        if (deviceName.contains("niimbot") || 
+            deviceName.contains("niim") || 
+            deviceName.contains("nii")) {
+            Log.d(TAG, "✅ Dispositivo identificado como NIIMBOT por nome: $deviceName")
+            return true
         }
         
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                Log.d(TAG, "=== INICIANDO CONEXÃO ===")
-                Log.d(TAG, "Dispositivo: ${device.name} (${device.address})")
-                Log.d(TAG, "Tipo: ${device.bondState}")
-                Log.d(TAG, "UUID: $SPP_UUID")
-                
-                // Desconectar se já estiver conectado
-                Log.d(TAG, "Desconectando conexão anterior...")
-                disconnect()
-                
-                // Criar socket Bluetooth
-                Log.d(TAG, "Criando socket RFCOMM...")
-                bluetoothSocket = device.createRfcommSocketToServiceRecord(SPP_UUID)
-                
-                if (bluetoothSocket == null) {
-                    throw IOException("Falha ao criar socket")
-                }
-                
-                Log.d(TAG, "Socket criado, tentando conectar...")
-                
-                // Definir timeout de conexão
-                bluetoothSocket?.connect()
-                
-                Log.d(TAG, "Connect() chamado, aguardando estabilização...")
-                
-                // Aguardar um pouco para estabilizar a conexão
-                delay(1000)
-                
-                Log.d(TAG, "Verificando status da conexão...")
-                
-                // Verificar se o socket está realmente conectado
-                val isSocketConnected = bluetoothSocket?.isConnected == true
-                Log.d(TAG, "Socket conectado: $isSocketConnected")
-                
-                if (isSocketConnected) {
-                    // Obter output stream
-                    Log.d(TAG, "Obtendo output stream...")
-                    outputStream = bluetoothSocket?.outputStream
-                    
-                    if (outputStream != null) {
-                        isConnected = true
-                        Log.d(TAG, "=== CONEXÃO ESTABELECIDA COM SUCESSO ===")
-                        Log.d(TAG, "Dispositivo: ${device.name}")
-                        Log.d(TAG, "Socket conectado: ${bluetoothSocket?.isConnected}")
-                        Log.d(TAG, "Output stream: ${outputStream != null}")
-                        
-                        withContext(Dispatchers.Main) {
-                            onConnectionStateChanged?.invoke(true)
-                            callback(true, null)
-                        }
-                    } else {
-                        Log.e(TAG, "Output stream é null")
-                        throw IOException("Não foi possível obter o output stream")
-                    }
-                } else {
-                    Log.e(TAG, "Socket não está conectado após connect()")
-                    throw IOException("Socket não está conectado")
-                }
-                
-            } catch (e: IOException) {
-                Log.e(TAG, "=== ERRO NA CONEXÃO ===")
-                Log.e(TAG, "Erro: ${e.message}")
-                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                disconnect()
-                
-                withContext(Dispatchers.Main) {
-                    callback(false, "Erro na conexão: ${e.message}")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "=== ERRO INESPERADO ===")
-                Log.e(TAG, "Erro: ${e.message}")
-                Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                disconnect()
-                
-                withContext(Dispatchers.Main) {
-                    callback(false, "Erro inesperado: ${e.message}")
-                }
-            }
+        // Verificar por endereço MAC (alguns padrões conhecidos)
+        if (deviceAddress.startsWith("00:15:") || 
+            deviceAddress.startsWith("00:16:") ||
+            deviceAddress.startsWith("00:17:")) {
+            Log.d(TAG, "✅ Dispositivo identificado como NIIMBOT por endereço: $deviceAddress")
+            return true
         }
+        
+        Log.d(TAG, "❌ Dispositivo não identificado como NIIMBOT: $deviceName ($deviceAddress)")
+        return false
     }
     
+    /**
+     * Conecta ao dispositivo usando endereço MAC
+     */
     fun connectToDevice(address: String, callback: (Boolean, String?) -> Unit) {
         if (!isBluetoothEnabled()) {
             callback(false, "Bluetooth não está habilitado")
@@ -157,75 +93,226 @@ class BluetoothManager(private val context: Context) {
         }
     }
     
-    fun disconnect() {
-        try {
-            outputStream?.close()
-            bluetoothSocket?.close()
-            isConnected = false
-            Log.d(TAG, "Desconectado do dispositivo")
-            
-            onConnectionStateChanged?.invoke(false)
-            
-        } catch (e: IOException) {
-            Log.e(TAG, "Erro ao desconectar: ${e.message}")
-        }
-    }
-    
-    fun isConnected(): Boolean {
-        return try {
-            isConnected && 
-            bluetoothSocket?.isConnected == true && 
-            outputStream != null &&
-            bluetoothSocket?.isConnected == true
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao verificar conexão: ${e.message}")
-            false
-        }
-    }
-    
-    fun printText(text: String) {
-        if (!isConnected()) {
-            onPrintResult?.invoke(false, "Dispositivo não conectado")
+    /**
+     * Conecta ao dispositivo usando o protocolo apropriado
+     */
+    fun connectToDevice(device: BluetoothDevice, callback: (Boolean, String?) -> Unit) {
+        if (!isBluetoothEnabled()) {
+            callback(false, "Bluetooth não está habilitado")
             return
         }
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                Log.d(TAG, "Enviando texto: $text")
+                Log.d(TAG, "=== INICIANDO CONEXÃO ===")
+                Log.d(TAG, "Dispositivo: ${device.name} (${device.address})")
+                Log.d(TAG, "Tipo: ${device.type}")
                 
-                // Verificar novamente se está conectado
-                if (bluetoothSocket?.isConnected != true || outputStream == null) {
-                    throw IOException("Conexão perdida durante a impressão")
+                // Verificar se é uma NIIMBOT
+                val isNiimbot = isNiimbotPrinter(device)
+                
+                if (isNiimbot) {
+                    Log.d(TAG, "🔍 Conectando como NIIMBOT...")
+                    connectAsNiimbot(device, callback)
+                } else {
+                    Log.d(TAG, "🔍 Conectando como impressora genérica...")
+                    connectAsGenericPrinter(device, callback)
                 }
                 
-                val data = text.toByteArray()
-                Log.d(TAG, "Enviando ${data.size} bytes")
-                
-                outputStream?.write(data)
-                outputStream?.flush()
-                
-                // Aguardar um pouco para a impressora processar
-                delay(500)
-                
-                Log.d(TAG, "Texto enviado com sucesso: $text")
-                
-                withContext(Dispatchers.Main) {
-                    onPrintResult?.invoke(true, null)
-                }
-                
-            } catch (e: IOException) {
-                Log.e(TAG, "Erro ao imprimir texto: ${e.message}")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Erro na conexão: ${e.message}")
                 Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                
-                // Tentar reconectar se a conexão foi perdida
-                if (e.message?.contains("Conexão perdida") == true) {
-                    disconnect()
-                }
-                
                 withContext(Dispatchers.Main) {
-                    onPrintResult?.invoke(false, "Erro ao imprimir: ${e.message}")
+                    callback(false, "Erro na conexão: ${e.message}")
                 }
             }
+        }
+    }
+    
+    /**
+     * Conecta como impressora NIIMBOT
+     */
+    private suspend fun connectAsNiimbot(device: BluetoothDevice, callback: (Boolean, String?) -> Unit) {
+        try {
+            Log.d(TAG, "UUID: NIIMBOT específico")
+            
+            // Desconectar conexão anterior
+            disconnect()
+            delay(1000)
+            
+            // Criar socket usando UUID NIIMBOT
+            val niimbotUUID = UUID.fromString("0000FFE0-0000-1000-8000-00805F9B34FB")
+            bluetoothSocket = device.createRfcommSocketToServiceRecord(niimbotUUID)
+            
+            Log.d(TAG, "Socket criado, tentando conectar...")
+            bluetoothSocket?.connect()
+            
+            Log.d(TAG, "Connect() chamado, aguardando estabilização...")
+            delay(1000)
+            
+            // Verificar status da conexão
+            Log.d(TAG, "Verificando status da conexão...")
+            if (bluetoothSocket?.isConnected == true) {
+                Log.d(TAG, "Obtendo output stream...")
+                outputStream = bluetoothSocket?.outputStream
+                
+                if (outputStream != null) {
+                    currentDevice = device
+                    
+                    // Inicializar impressora NIIMBOT
+                    niimbotPrinter = NiimbotPrinter()
+                    niimbotPrinter?.connect(bluetoothSocket!!) { success, error ->
+                        if (success) {
+                            Log.d(TAG, "=== CONEXÃO NIIMBOT ESTABELECIDA COM SUCESSO ===")
+                            Log.d(TAG, "Dispositivo: ${device.name}")
+                            Log.d(TAG, "Socket conectado: ${bluetoothSocket?.isConnected}")
+                            Log.d(TAG, "Output stream: ${outputStream != null}")
+                            
+                            withContext(Dispatchers.Main) {
+                                onConnectionStateChanged?.invoke(true)
+                                callback(true, "Conectado à NIIMBOT")
+                            }
+                        } else {
+                            Log.e(TAG, "❌ Falha na inicialização NIIMBOT: $error")
+                            withContext(Dispatchers.Main) {
+                                callback(false, "Falha na inicialização NIIMBOT: $error")
+                            }
+                        }
+                    }
+                } else {
+                    throw IOException("Não foi possível obter output stream")
+                }
+            } else {
+                throw IOException("Socket não conectado")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Erro na conexão NIIMBOT: ${e.message}")
+            disconnect()
+            withContext(Dispatchers.Main) {
+                callback(false, "Erro na conexão NIIMBOT: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Conecta como impressora genérica
+     */
+    private suspend fun connectAsGenericPrinter(device: BluetoothDevice, callback: (Boolean, String?) -> Unit) {
+        try {
+            Log.d(TAG, "UUID: $SPP_UUID")
+            
+            // Desconectar conexão anterior
+            disconnect()
+            delay(1000)
+            
+            // Criar socket RFCOMM
+            bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(SPP_UUID))
+            
+            Log.d(TAG, "Socket criado, tentando conectar...")
+            bluetoothSocket?.connect()
+            
+            Log.d(TAG, "Connect() chamado, aguardando estabilização...")
+            delay(1000)
+            
+            // Verificar status da conexão
+            Log.d(TAG, "Verificando status da conexão...")
+            if (bluetoothSocket?.isConnected == true) {
+                Log.d(TAG, "Obtendo output stream...")
+                outputStream = bluetoothSocket?.outputStream
+                
+                if (outputStream != null) {
+                    currentDevice = device
+                    Log.d(TAG, "=== CONEXÃO GENÉRICA ESTABELECIDA COM SUCESSO ===")
+                    Log.d(TAG, "Dispositivo: ${device.name}")
+                    Log.d(TAG, "Socket conectado: ${bluetoothSocket?.isConnected}")
+                    Log.d(TAG, "Output stream: ${outputStream != null}")
+                    
+                    withContext(Dispatchers.Main) {
+                        onConnectionStateChanged?.invoke(true)
+                        callback(true, "Conectado à impressora genérica")
+                    }
+                } else {
+                    throw IOException("Não foi possível obter output stream")
+                }
+            } else {
+                throw IOException("Socket não conectado")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Erro na conexão genérica: ${e.message}")
+            disconnect()
+            withContext(Dispatchers.Main) {
+                callback(false, "Erro na conexão genérica: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Desconecta do dispositivo
+     */
+    fun disconnect() {
+        try {
+            niimbotPrinter?.disconnect()
+            niimbotPrinter = null
+            
+            outputStream?.close()
+            bluetoothSocket?.close()
+            outputStream = null
+            bluetoothSocket = null
+            currentDevice = null
+            
+            Log.d(TAG, "Desconectado do dispositivo")
+            
+            onConnectionStateChanged?.invoke(false)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao desconectar: ${e.message}")
+        }
+    }
+    
+    /**
+     * Verifica se está conectado
+     */
+    fun isConnected(): Boolean {
+        return bluetoothSocket?.isConnected == true && outputStream != null
+    }
+    
+    /**
+     * Imprime texto usando o protocolo apropriado
+     */
+    fun printText(text: String, callback: (Boolean, String?) -> Unit) {
+        if (niimbotPrinter != null && niimbotPrinter!!.isConnected()) {
+            Log.d(TAG, "🔍 Usando protocolo NIIMBOT para texto")
+            niimbotPrinter!!.printText(text, callback)
+        } else if (isConnected()) {
+            Log.d(TAG, "🔍 Usando protocolo genérico para texto")
+            printTextGeneric(text, callback)
+        } else {
+            callback(false, "Dispositivo não conectado")
+        }
+    }
+    
+    /**
+     * Imprime etiqueta 60x60mm usando o protocolo apropriado
+     */
+    fun printLabel60x60(title: String, subtitle: String = "", barcode: String = "", qrData: String = "", callback: (Boolean, String?) -> Unit) {
+        if (niimbotPrinter != null && niimbotPrinter!!.isConnected()) {
+            Log.d(TAG, "🔍 Usando protocolo NIIMBOT para etiqueta")
+            niimbotPrinter!!.printLabel60x60(title, subtitle) { success, error ->
+                if (success && qrData.isNotEmpty()) {
+                    // Se há dados QR, imprimir também
+                    niimbotPrinter!!.printQR(qrData) { qrSuccess, qrError ->
+                        callback(qrSuccess, if (qrSuccess) "Etiqueta e QR impressos" else qrError)
+                    }
+                } else {
+                    callback(success, error)
+                }
+            }
+        } else if (isConnected()) {
+            Log.d(TAG, "🔍 Usando protocolo genérico para etiqueta")
+            printLabel60x60Generic(title, subtitle, barcode, qrData, callback)
+        } else {
+            callback(false, "Dispositivo não conectado")
         }
     }
     
