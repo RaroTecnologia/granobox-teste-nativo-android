@@ -42,16 +42,26 @@ class MainActivity : AppCompatActivity() {
     private val bluetoothDeviceLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        addToLog("=== RESULTADO DO LAUNCHER ===")
+        addToLog("resultCode: ${result.resultCode}")
+        addToLog("data: ${result.data}")
+        
         if (result.resultCode == RESULT_OK) {
             val deviceAddress = result.data?.getStringExtra(BluetoothActivity.EXTRA_DEVICE_ADDRESS)
             val deviceName = result.data?.getStringExtra(BluetoothActivity.EXTRA_DEVICE_NAME)
             
+            addToLog("deviceAddress: $deviceAddress")
+            addToLog("deviceName: $deviceName")
+            
             if (deviceAddress != null && deviceName != null) {
+                addToLog("✅ Dados válidos recebidos, definindo currentDevice...")
                 currentDevice = deviceAddress
+                addToLog("currentDevice definido como: $currentDevice")
                 addToLog("✓ Dispositivo selecionado: $deviceName ($deviceAddress)")
                 
                 // Conectar ao dispositivo usando o BluetoothManager
                 val bluetoothManager = thermalBluetoothManager
+                addToLog("Iniciando conexão com BluetoothManager...")
                 bluetoothManager.connectToDevice(deviceAddress) { success, error ->
                     runOnUiThread {
                         if (success) {
@@ -63,9 +73,14 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
+            } else {
+                addToLog("❌ Dados inválidos recebidos")
+                addToLog("deviceAddress é null: ${deviceAddress == null}")
+                addToLog("deviceName é null: ${deviceName == null}")
             }
         } else {
-            addToLog("Seleção de dispositivo cancelada")
+            addToLog("❌ Seleção de dispositivo cancelada ou falhou")
+            addToLog("resultCode: ${result.resultCode}")
         }
     }
     
@@ -217,19 +232,26 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateConnectionStatus(isConnected: Boolean) {
+        addToLog("=== UPDATE CONNECTION STATUS ===")
+        addToLog("isConnected: $isConnected")
+        addToLog("currentDevice antes: $currentDevice")
+        
         if (isConnected) {
             binding.tvBluetoothStatus.text = "Conectado"
             binding.tvBluetoothStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
             binding.btnConnect.isEnabled = false
             binding.btnDisconnect.isEnabled = true
-            addToLog("✓ Dispositivo conectado")
+            addToLog("✅ Dispositivo conectado")
+            addToLog("currentDevice após conexão: $currentDevice")
         } else {
             binding.tvBluetoothStatus.text = "Desconectado"
             binding.tvBluetoothStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
             binding.btnConnect.isEnabled = true
             binding.btnDisconnect.isEnabled = false
+            addToLog("⚠️ Definindo currentDevice como null")
             currentDevice = null
             addToLog("✗ Dispositivo desconectado")
+            addToLog("currentDevice após desconexão: $currentDevice")
         }
     }
     
@@ -359,6 +381,7 @@ class MainActivity : AppCompatActivity() {
     
     private fun showDeviceStatus() {
         addToLog("=== STATUS DO DISPOSITIVO ===")
+        addToLog("Método chamado em: ${System.currentTimeMillis()}")
         addToLog("currentDevice: $currentDevice")
         addToLog("thermalBluetoothManager.isConnected(): ${thermalBluetoothManager.isConnected()}")
         addToLog("thermalBluetoothManager.getConnectionStatus():")
@@ -370,6 +393,8 @@ class MainActivity : AppCompatActivity() {
             addToLog("❌ Nenhum dispositivo selecionado")
             addToLog("💡 Dica: Vá em 'Configurações Bluetooth' e selecione um dispositivo")
         }
+        
+        addToLog("=== FIM DO STATUS ===")
     }
     
     private fun addToLog(message: String) {
