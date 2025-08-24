@@ -1124,7 +1124,11 @@ class BluetoothManager(private val context: Context) {
                     if (outputStream != null) {
                         Log.d(TAG, "✅ Reconexão bem-sucedida")
                         return true
+                    } else {
+                        Log.w(TAG, "⚠️ Output stream nulo após reconexão")
                     }
+                } else {
+                    Log.w(TAG, "⚠️ Socket não conectado após reconexão")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Falha na reconexão: ${e.message}")
@@ -1154,7 +1158,11 @@ class BluetoothManager(private val context: Context) {
                     if (!ensureConnection()) {
                         retries++
                         continue
+                    } else {
+                        Log.d(TAG, "✅ Reconexão bem-sucedida durante envio")
                     }
+                } else {
+                    Log.d(TAG, "✅ Socket válido para envio")
                 }
                 
                 // Enviar dados
@@ -1178,6 +1186,8 @@ class BluetoothManager(private val context: Context) {
                 if (retries < maxRetries) {
                     Log.d(TAG, "🔄 Aguardando antes da próxima tentativa...")
                     Thread.sleep(2000)
+                } else {
+                    Log.d(TAG, "🔄 Última tentativa realizada")
                 }
             }
         }
