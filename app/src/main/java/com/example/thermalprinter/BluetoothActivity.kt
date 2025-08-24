@@ -210,34 +210,42 @@ class BluetoothActivity : AppCompatActivity() {
         Toast.makeText(this, "Conectando a ${device.name}...", Toast.LENGTH_SHORT).show()
         updateScanStatus("Conectando a ${device.name}...")
         
-        // Criar BluetoothManager temporário para testar conexão
-        val tempBluetoothManager = BluetoothManager(this)
+        // Testar se a conexão é possível (sem conectar efetivamente)
+        Log.d(TAG, "Testando se a conexão é possível...")
         
-        tempBluetoothManager.initialize(bluetoothAdapter)
-        
-        Log.d(TAG, "Testando conexão antes de retornar resultado...")
-        
-        tempBluetoothManager.connectToDevice(device) { success: Boolean, error: String? ->
-            Log.d(TAG, "Resultado da conexão: success=$success, error=$error")
+        try {
+            // Tentar criar um socket temporário para verificar se é possível
+            val testSocket = device.createRfcommSocketToServiceRecord(
+                UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+            )
             
-            runOnUiThread {
-                if (success) {
-                    Log.d(TAG, "✅ Conexão bem-sucedida, retornando resultado")
-                    
-                    // Retornar resultado para MainActivity
-                    val resultIntent = Intent().apply {
-                        putExtra(EXTRA_DEVICE_ADDRESS, device.address)
-                        putExtra(EXTRA_DEVICE_NAME, device.name)
-                    }
-                    setResult(RESULT_OK, resultIntent)
-                    finish()
-                    
-                } else {
-                    Log.e(TAG, "❌ Falha na conexão: $error")
-                    Toast.makeText(this, "Falha na conexão: $error", Toast.LENGTH_LONG).show()
-                    updateScanStatus("Falha na conexão")
+            // Tentar conectar brevemente para verificar se funciona
+            testSocket.connect()
+            
+            if (testSocket.isConnected) {
+                Log.d(TAG, "✅ Teste de conexão bem-sucedido, retornando resultado")
+                
+                // Fechar socket de teste
+                testSocket.close()
+                
+                // Retornar resultado para MainActivity
+                val resultIntent = Intent().apply {
+                    putExtra(EXTRA_DEVICE_ADDRESS, device.address)
+                    putExtra(EXTRA_DEVICE_NAME, device.name)
                 }
+                setResult(RESULT_OK, resultIntent)
+                finish()
+                
+            } else {
+                Log.e(TAG, "❌ Teste de conexão falhou")
+                Toast.makeText(this, "Falha no teste de conexão", Toast.LENGTH_LONG).show()
+                updateScanStatus("Falha no teste de conexão")
             }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Erro no teste de conexão: ${e.message}")
+            Toast.makeText(this, "Erro no teste de conexão: ${e.message}", Toast.LENGTH_LONG).show()
+            updateScanStatus("Erro no teste de conexão")
         }
     }
     

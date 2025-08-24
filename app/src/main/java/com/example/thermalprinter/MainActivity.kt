@@ -59,10 +59,21 @@ class MainActivity : AppCompatActivity() {
                 addToLog("currentDevice definido como: $currentDevice")
                 addToLog("✓ Dispositivo selecionado: $deviceName ($deviceAddress)")
                 
-                // A BluetoothActivity já conectou, apenas atualizar status
-                addToLog("BluetoothActivity já conectou, atualizando status...")
-                updateConnectionStatus(true)
-                addToLog("✅ Status atualizado - dispositivo conectado")
+                // A BluetoothActivity já testou a conexão, agora vamos conectar na MainActivity
+                addToLog("BluetoothActivity testou conexão com sucesso, conectando na MainActivity...")
+                
+                val bluetoothManager = thermalBluetoothManager
+                bluetoothManager.connectToDevice(deviceAddress) { success, error ->
+                    runOnUiThread {
+                        if (success) {
+                            addToLog("✅ Conectado com sucesso na MainActivity a $deviceName")
+                            updateConnectionStatus(true)
+                        } else {
+                            addToLog("❌ Falha na conexão na MainActivity: $error")
+                            Toast.makeText(this, "Falha na conexão: $error", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             } else {
                 addToLog("❌ Dados inválidos recebidos")
                 addToLog("deviceAddress é null: ${deviceAddress == null}")
