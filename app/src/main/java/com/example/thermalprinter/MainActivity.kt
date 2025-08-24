@@ -169,6 +169,11 @@ class MainActivity : AppCompatActivity() {
             discoverUUIDs()
         }
         
+        // Botão status do dispositivo
+        binding.btnStatus.setOnClickListener {
+            showDeviceStatus()
+        }
+        
         updateBluetoothStatus()
     }
     
@@ -308,7 +313,13 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun discoverUUIDs() {
+        addToLog("=== DESCOBRINDO UUIDs ===")
+        addToLog("currentDevice: $currentDevice")
+        addToLog("thermalBluetoothManager.isConnected(): ${thermalBluetoothManager.isConnected()}")
+        
         if (currentDevice == null) {
+            addToLog("❌ Nenhum dispositivo selecionado")
+            addToLog("💡 Dica: Conecte primeiro em um dispositivo Bluetooth")
             Toast.makeText(this, "Nenhum dispositivo selecionado", Toast.LENGTH_SHORT).show()
             return
         }
@@ -319,7 +330,6 @@ class MainActivity : AppCompatActivity() {
         if (bluetoothAdapter != null) {
             val device = bluetoothAdapter.getRemoteDevice(currentDevice!!)
             
-            addToLog("=== DESCOBRINDO UUIDs ===")
             addToLog("Dispositivo: ${device.name} (${device.address})")
             
             bluetoothManager.discoverDeviceUUIDs(device) { uuids ->
@@ -344,6 +354,21 @@ class MainActivity : AppCompatActivity() {
             }
         } else {
             addToLog("❌ Bluetooth adapter não disponível")
+        }
+    }
+    
+    private fun showDeviceStatus() {
+        addToLog("=== STATUS DO DISPOSITIVO ===")
+        addToLog("currentDevice: $currentDevice")
+        addToLog("thermalBluetoothManager.isConnected(): ${thermalBluetoothManager.isConnected()}")
+        addToLog("thermalBluetoothManager.getConnectionStatus():")
+        addToLog(thermalBluetoothManager.getConnectionStatus())
+        
+        if (currentDevice != null) {
+            addToLog("✅ Dispositivo selecionado: $currentDevice")
+        } else {
+            addToLog("❌ Nenhum dispositivo selecionado")
+            addToLog("💡 Dica: Vá em 'Configurações Bluetooth' e selecione um dispositivo")
         }
     }
     
