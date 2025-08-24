@@ -13,6 +13,14 @@ import com.example.thermalprinter.NiimbotPrinter
 
 class BluetoothManager(private val context: Context) {
     
+    // Protocolo selecionado pelo usuário
+    private var selectedProtocol: PrinterProtocol = PrinterProtocol.AUTO
+    
+    fun setProtocol(protocol: PrinterProtocol) {
+        selectedProtocol = protocol
+        Log.d(TAG, "🔧 Protocolo alterado para: $protocol")
+    }
+    
     companion object {
         private const val TAG = "BluetoothManager"
         private const val SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB"
@@ -111,15 +119,31 @@ class BluetoothManager(private val context: Context) {
                 Log.d(TAG, "Dispositivo: ${device.name} (${device.address})")
                 Log.d(TAG, "Tipo: ${device.type}")
                 
-                // Verificar se é uma NIIMBOT
-                val isNiimbot = isNiimbotPrinter(device)
-                
-                if (isNiimbot) {
-                    Log.d(TAG, "🔍 Conectando como NIIMBOT...")
-                    connectAsNiimbot(device, callback)
-                } else {
-                    Log.d(TAG, "🔍 Conectando como impressora genérica...")
-                    connectAsGenericPrinter(device, callback)
+                // Respeitar o protocolo selecionado pelo usuário
+                when (selectedProtocol) {
+                    PrinterProtocol.AUTO -> {
+                        // Detecção automática (comportamento anterior)
+                        val isNiimbot = isNiimbotPrinter(device)
+                        if (isNiimbot) {
+                            Log.d(TAG, "🔍 [AUTO] Conectando como NIIMBOT...")
+                            connectAsNiimbot(device, callback)
+                        } else {
+                            Log.d(TAG, "🔍 [AUTO] Conectando como impressora genérica...")
+                            connectAsGenericPrinter(device, callback)
+                        }
+                    }
+                    PrinterProtocol.NIIMBOT -> {
+                        Log.d(TAG, "🔍 [FORÇADO] Conectando como NIIMBOT...")
+                        connectAsNiimbot(device, callback)
+                    }
+                    PrinterProtocol.TSPL -> {
+                        Log.d(TAG, "🔍 [FORÇADO] Conectando como TSPL...")
+                        connectAsTSPL(device, callback)
+                    }
+                    PrinterProtocol.CPCL -> {
+                        Log.d(TAG, "🔍 [FORÇADO] Conectando como CPCL...")
+                        connectAsGenericPrinter(device, callback)
+                    }
                 }
                 
             } catch (e: Exception) {
@@ -198,6 +222,61 @@ class BluetoothManager(private val context: Context) {
         }
     }
     
+    /**
+     * Conecta como impressora TSPL
+     */
+    private suspend fun connectAsTSPL(device: BluetoothDevice, callback: (Boolean, String?) -> Unit) {
+        try {
+            Log.d(TAG, "UUID: TSPL usando SPP padrão")
+            
+            // Desconectar conexão anterior
+            disconnect()
+            delay(1000)
+            
+            // Criar socket usando UUID SPP padrão
+            val uuid = UUID.fromString(SPP_UUID)
+            bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
+            
+            Log.d(TAG, "Socket TSPL criado, tentando conectar...")
+            bluetoothSocket?.connect()
+            
+            Log.d(TAG, "Connect() chamado, aguardando estabilização...")
+            delay(1000)
+            
+            // Verificar status da conexão
+            Log.d(TAG, "Verificando status da conexão TSPL...")
+            if (bluetoothSocket?.isConnected == true) {
+                Log.d(TAG, "Obtendo output stream TSPL...")
+                outputStream = bluetoothSocket?.outputStream
+                
+                if (outputStream != null) {
+                    currentDevice = device
+                    
+                    Log.d(TAG, "=== CONEXÃO TSPL ESTABELECIDA COM SUCESSO ===")
+                    Log.d(TAG, "Dispositivo: ${device.name}")
+                    Log.d(TAG, "Socket conectado: ${bluetoothSocket?.isConnected}")
+                    Log.d(TAG, "Output stream: ${outputStream != null}")
+                    
+                    CoroutineScope(Dispatchers.Main).launch {
+                        onConnectionStateChanged?.invoke(true)
+                        callback(true, "Conectado via TSPL")
+                    }
+                } else {
+                    throw IOException("Não foi possível obter output stream TSPL")
+                }
+            } else {
+                throw IOException("Socket TSPL não conectado")
+            }
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Erro na conexão TSPL: ${e.message}")
+            Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
+            withContext(Dispatchers.Main) {
+                callback(false, "Erro na conexão TSPL: ${e.message}")
+            }
+        }
+    }
+
     /**
      * Conecta como impressora genérica
      */
@@ -431,55 +510,93 @@ class BluetoothManager(private val context: Context) {
                 Log.d(TAG, "- Socket conectado: ${bluetoothSocket?.isConnected}")
                 Log.d(TAG, "- Output stream: ${outputStream != null}")
                 
-                // Verificar se é NIIMBOT e usar protocolo apropriado
-                val isNiimbot = currentDevice?.let { isNiimbotPrinter(it) } ?: false
-                
-                if (isNiimbot) {
-                    Log.d(TAG, "🔍 Usando protocolo NIIMBOT para impressão")
-                    
-                    // Converter comandos CPCL para protocolo NIIMBOT
-                    val niimbotCommands = convertCPCLToNiimbot(cpclCommands)
-                    Log.d(TAG, "Comandos NIIMBOT: $niimbotCommands")
-                    
-                    val data = niimbotCommands.toByteArray()
-                    Log.d(TAG, "Enviando ${data.size} bytes via NIIMBOT")
-                    
-                    // Usar sistema de retry para evitar "Broken Pipe"
-                    val success = sendDataWithRetry(data)
-                    
-                    if (success) {
-                        Log.d(TAG, "=== IMPRESSÃO NIIMBOT CONCLUÍDA COM SUCESSO ===")
-                        withContext(Dispatchers.Main) {
-                            onPrintResult?.invoke(true, "Impressão NIIMBOT realizada")
-                        }
-                    } else {
-                        Log.e(TAG, "❌ Falha no envio NIIMBOT após retry")
-                        withContext(Dispatchers.Main) {
-                            onPrintResult?.invoke(false, "Falha na impressão NIIMBOT")
+                // Respeitar o protocolo selecionado pelo usuário
+                when (selectedProtocol) {
+                    PrinterProtocol.AUTO -> {
+                        // Detecção automática (comportamento anterior)
+                        val isNiimbot = currentDevice?.let { isNiimbotPrinter(it) } ?: false
+                        if (isNiimbot) {
+                            Log.d(TAG, "🔍 [AUTO] Usando protocolo NIIMBOT para impressão")
+                            val niimbotCommands = convertCPCLToNiimbot(cpclCommands)
+                            val data = niimbotCommands.toByteArray()
+                            val success = sendDataWithRetry(data)
+                            if (success) {
+                                Log.d(TAG, "=== IMPRESSÃO NIIMBOT CONCLUÍDA COM SUCESSO ===")
+                                withContext(Dispatchers.Main) {
+                                    onPrintResult?.invoke(true, "Impressão NIIMBOT realizada")
+                                }
+                            } else {
+                                Log.e(TAG, "❌ Falha no envio NIIMBOT após retry")
+                                withContext(Dispatchers.Main) {
+                                    onPrintResult?.invoke(false, "Falha na impressão NIIMBOT")
+                                }
+                            }
+                        } else {
+                            Log.d(TAG, "🔍 [AUTO] Usando protocolo CPCL genérico para impressão")
+                            val data = cpclCommands.toByteArray()
+                            val success = sendDataWithRetry(data)
+                            if (success) {
+                                Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
+                                withContext(Dispatchers.Main) {
+                                    onPrintResult?.invoke(true, null)
+                                }
+                            } else {
+                                Log.e(TAG, "❌ Falha no envio CPCL após retry")
+                                withContext(Dispatchers.Main) {
+                                    onPrintResult?.invoke(false, "Falha no envio após tentativas de reconexão")
+                                }
+                            }
                         }
                     }
-                    
-                } else {
-                    Log.d(TAG, "🔍 Usando protocolo CPCL genérico para impressão")
-                    Log.d(TAG, "Enviando comandos CPCL: $cpclCommands")
-                    
-                    val data = cpclCommands.toByteArray()
-                    Log.d(TAG, "Enviando ${data.size} bytes via CPCL")
-                    
-                    // Usar sistema de retry para evitar "Broken Pipe"
-                    val success = sendDataWithRetry(data)
-                    
-                    if (success) {
-                        Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
-                        Log.d(TAG, "Total de bytes enviados: ${data.size}")
-                        
-                        withContext(Dispatchers.Main) {
-                            onPrintResult?.invoke(true, null)
+                    PrinterProtocol.NIIMBOT -> {
+                        Log.d(TAG, "🔍 [FORÇADO] Usando protocolo NIIMBOT para impressão")
+                        val niimbotCommands = convertCPCLToNiimbot(cpclCommands)
+                        val data = niimbotCommands.toByteArray()
+                        val success = sendDataWithRetry(data)
+                        if (success) {
+                            Log.d(TAG, "=== IMPRESSÃO NIIMBOT CONCLUÍDA COM SUCESSO ===")
+                            withContext(Dispatchers.Main) {
+                                onPrintResult?.invoke(true, "Impressão NIIMBOT realizada")
+                            }
+                        } else {
+                            Log.e(TAG, "❌ Falha no envio NIIMBOT após retry")
+                            withContext(Dispatchers.Main) {
+                                onPrintResult?.invoke(false, "Falha na impressão NIIMBOT")
+                            }
                         }
-                    } else {
-                        Log.e(TAG, "❌ Falha no envio CPCL após retry")
-                        withContext(Dispatchers.Main) {
-                            onPrintResult?.invoke(false, "Falha no envio após tentativas de reconexão")
+                    }
+                    PrinterProtocol.TSPL -> {
+                        Log.d(TAG, "🔍 [FORÇADO] Usando protocolo TSPL para impressão")
+                        // Converter comandos CPCL para TSPL
+                        val tsplCommands = convertCPCLToTSPL(cpclCommands)
+                        val data = tsplCommands.toByteArray()
+                        val success = sendDataWithRetry(data)
+                        if (success) {
+                            Log.d(TAG, "=== IMPRESSÃO TSPL CONCLUÍDA COM SUCESSO ===")
+                            withContext(Dispatchers.Main) {
+                                onPrintResult?.invoke(true, "Impressão TSPL realizada")
+                            }
+                        } else {
+                            Log.e(TAG, "❌ Falha no envio TSPL após retry")
+                            withContext(Dispatchers.Main) {
+                                onPrintResult?.invoke(false, "Falha na impressão TSPL")
+                            }
+                        }
+                    }
+                    PrinterProtocol.CPCL -> {
+                        Log.d(TAG, "🔍 [FORÇADO] Usando protocolo CPCL genérico para impressão")
+                        val data = cpclCommands.toByteArray()
+                        val success = sendDataWithRetry(data)
+                        if (success) {
+                            Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
+                            withContext(Dispatchers.Main) {
+                                onPrintResult?.invoke(true, null)
+                            }
+                        } else {
+                            Log.e(TAG, "❌ Falha no envio CPCL após retry")
+                            withContext(Dispatchers.Main) {
+                                onPrintResult?.invoke(false, "Falha no envio após tentativas de reconexão")
+                            }
                         }
                     }
                 }
@@ -495,6 +612,45 @@ class BluetoothManager(private val context: Context) {
         }
     }
     
+    /**
+     * Converte comandos CPCL para protocolo TSPL
+     */
+    private fun convertCPCLToTSPL(cpclCommands: String): String {
+        // Converter comandos CPCL básicos para TSPL
+        return buildString {
+            // Inicialização TSPL
+            append(TSPLCommands.initialize())
+            
+            // Se contém "TEXT", extrair e converter
+            if (cpclCommands.contains("TEXT")) {
+                // Exemplo: TEXT 4 0 10 20 TESTE
+                val textMatch = Regex("TEXT (\\d+) (\\d+) (\\d+) (\\d+) (.+)").find(cpclCommands)
+                if (textMatch != null) {
+                    val (font, rotation, x, y, text) = textMatch.destructured
+                    append(TSPLCommands.text(x.toInt(), y.toInt(), font, rotation.toInt(), 1, 1, text))
+                } else {
+                    // Texto simples
+                    append(TSPLCommands.text(50, 100, "3", 0, 1, 1, "TEXTO TSPL"))
+                }
+            } else {
+                // Texto padrão se não houver TEXT
+                append(TSPLCommands.text(50, 100, "3", 0, 1, 1, "CPCL->TSPL"))
+            }
+            
+            // Se contém "QR", extrair e converter
+            if (cpclCommands.contains("QR")) {
+                val qrMatch = Regex("QR (\\d+) (\\d+) (\\d+) (.+)").find(cpclCommands)
+                if (qrMatch != null) {
+                    val (x, y, size, data) = qrMatch.destructured
+                    append(TSPLCommands.qrCode(x.toInt(), y.toInt(), "M", size.toInt(), "A", 0, data))
+                }
+            }
+            
+            // Comando de impressão
+            append(TSPLCommands.print(1))
+        }
+    }
+
     /**
      * Converte comandos CPCL para protocolo NIIMBOT
      */

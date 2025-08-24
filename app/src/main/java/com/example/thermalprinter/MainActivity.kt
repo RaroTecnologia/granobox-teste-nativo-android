@@ -449,6 +449,9 @@ class MainActivity : AppCompatActivity() {
                 else -> PrinterProtocol.AUTO
             }
             
+            // Atualizar protocolo no BluetoothManager
+            thermalBluetoothManager.setProtocol(selectedProtocol)
+            
             updateProtocolInfo()
             addToLog("🔧 Protocolo alterado para: ${getProtocolName(selectedProtocol)}")
         }
