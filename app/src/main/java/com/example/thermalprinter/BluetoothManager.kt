@@ -168,13 +168,13 @@ class BluetoothManager(private val context: Context) {
                             Log.d(TAG, "Socket conectado: ${bluetoothSocket?.isConnected}")
                             Log.d(TAG, "Output stream: ${outputStream != null}")
                             
-                            withContext(Dispatchers.Main) {
+                            CoroutineScope(Dispatchers.Main).launch {
                                 onConnectionStateChanged?.invoke(true)
                                 callback(true, "Conectado à NIIMBOT")
                             }
                         } else {
                             Log.e(TAG, "❌ Falha na inicialização NIIMBOT: $error")
-                            withContext(Dispatchers.Main) {
+                            CoroutineScope(Dispatchers.Main).launch {
                                 callback(false, "Falha na inicialização NIIMBOT: $error")
                             }
                         }
@@ -189,7 +189,7 @@ class BluetoothManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Erro na conexão NIIMBOT: ${e.message}")
             disconnect()
-            withContext(Dispatchers.Main) {
+            CoroutineScope(Dispatchers.Main).launch {
                 callback(false, "Erro na conexão NIIMBOT: ${e.message}")
             }
         }
@@ -228,7 +228,7 @@ class BluetoothManager(private val context: Context) {
                     Log.d(TAG, "Socket conectado: ${bluetoothSocket?.isConnected}")
                     Log.d(TAG, "Output stream: ${outputStream != null}")
                     
-                    withContext(Dispatchers.Main) {
+                    CoroutineScope(Dispatchers.Main).launch {
                         onConnectionStateChanged?.invoke(true)
                         callback(true, "Conectado à impressora genérica")
                     }
@@ -242,7 +242,7 @@ class BluetoothManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Erro na conexão genérica: ${e.message}")
             disconnect()
-            withContext(Dispatchers.Main) {
+            CoroutineScope(Dispatchers.Main).launch {
                 callback(false, "Erro na conexão genérica: ${e.message}")
             }
         }
@@ -523,7 +523,7 @@ class BluetoothManager(private val context: Context) {
     fun getConnectionStatus(): String {
         return buildString {
             append("=== STATUS DA CONEXÃO ===\n")
-            append("isConnected: $isConnected\n")
+            append("isConnected: ${isConnected()}\n")
             append("Socket: ${bluetoothSocket?.isConnected}\n")
             append("Output Stream: ${outputStream != null}\n")
             append("Bluetooth Adapter: ${bluetoothAdapter?.isEnabled}\n")
