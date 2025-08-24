@@ -59,7 +59,9 @@ class BluetoothManager(private val context: Context) {
         // Verificar por nome
         if (deviceName.contains("niimbot") || 
             deviceName.contains("niim") || 
-            deviceName.contains("nii")) {
+            deviceName.contains("nii") ||
+            deviceName.contains("blue") ||
+            deviceName.contains("bluetooth")) {
             Log.d(TAG, "✅ Dispositivo identificado como NIIMBOT por nome: $deviceName")
             return true
         }
@@ -67,7 +69,8 @@ class BluetoothManager(private val context: Context) {
         // Verificar por endereço MAC (alguns padrões conhecidos)
         if (deviceAddress.startsWith("00:15:") || 
             deviceAddress.startsWith("00:16:") ||
-            deviceAddress.startsWith("00:17:")) {
+            deviceAddress.startsWith("00:17:") ||
+            deviceAddress.startsWith("66:32:")) {
             Log.d(TAG, "✅ Dispositivo identificado como NIIMBOT por endereço: $deviceAddress")
             return true
         }
@@ -422,53 +425,100 @@ class BluetoothManager(private val context: Context) {
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                Log.d(TAG, "=== INICIANDO IMPRESSÃO CPCL ===")
+                Log.d(TAG, "=== INICIANDO IMPRESSÃO ===")
                 Log.d(TAG, "Status da conexão:")
                 Log.d(TAG, "- isConnected: ${isConnected()}")
                 Log.d(TAG, "- Socket conectado: ${bluetoothSocket?.isConnected}")
                 Log.d(TAG, "- Output stream: ${outputStream != null}")
                 
-                Log.d(TAG, "Enviando comandos CPCL...")
-                Log.d(TAG, "Comandos: $cpclCommands")
+                // Verificar se é NIIMBOT e usar protocolo apropriado
+                val isNiimbot = currentDevice?.let { isNiimbotPrinter(it) } ?: false
                 
-                val data = cpclCommands.toByteArray()
-                Log.d(TAG, "Enviando ${data.size} bytes")
-                
-                // Enviar em chunks
-                val chunkSize = 1024
-                var offset = 0
-                while (offset < data.size) {
-                    val end = minOf(offset + chunkSize, data.size)
-                    val chunk = data.copyOfRange(offset, end)
-                    outputStream?.write(chunk)
-                    outputStream?.flush()
-                    Log.d(TAG, "Chunk enviado: ${chunk.size} bytes (${offset + chunk.size}/${data.size})")
-                    delay(100)
-                    offset = end
-                }
-                
-                delay(500)
-                
-                Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
-                Log.d(TAG, "Total de bytes enviados: ${data.size}")
-                
-                withContext(Dispatchers.Main) {
-                    onPrintResult?.invoke(true, null)
+                if (isNiimbot) {
+                    Log.d(TAG, "🔍 Usando protocolo NIIMBOT para impressão")
+                    
+                    // Converter comandos CPCL para protocolo NIIMBOT
+                    val niimbotCommands = convertCPCLToNiimbot(cpclCommands)
+                    Log.d(TAG, "Comandos NIIMBOT: $niimbotCommands")
+                    
+                    val data = niimbotCommands.toByteArray()
+                    Log.d(TAG, "Enviando ${data.size} bytes via NIIMBOT")
+                    
+                    // Usar sistema de retry para evitar "Broken Pipe"
+                    val success = sendDataWithRetry(data)
+                    
+                    if (success) {
+                        Log.d(TAG, "=== IMPRESSÃO NIIMBOT CONCLUÍDA COM SUCESSO ===")
+                        withContext(Dispatchers.Main) {
+                            onPrintResult?.invoke(true, "Impressão NIIMBOT realizada")
+                        }
+                    } else {
+                        Log.e(TAG, "❌ Falha no envio NIIMBOT após retry")
+                        withContext(Dispatchers.Main) {
+                            onPrintResult?.invoke(false, "Falha na impressão NIIMBOT")
+                        }
+                    }
+                    
+                } else {
+                    Log.d(TAG, "🔍 Usando protocolo CPCL genérico para impressão")
+                    Log.d(TAG, "Enviando comandos CPCL: $cpclCommands")
+                    
+                    val data = cpclCommands.toByteArray()
+                    Log.d(TAG, "Enviando ${data.size} bytes via CPCL")
+                    
+                    // Usar sistema de retry para evitar "Broken Pipe"
+                    val success = sendDataWithRetry(data)
+                    
+                    if (success) {
+                        Log.d(TAG, "=== IMPRESSÃO CPCL CONCLUÍDA COM SUCESSO ===")
+                        Log.d(TAG, "Total de bytes enviados: ${data.size}")
+                        
+                        withContext(Dispatchers.Main) {
+                            onPrintResult?.invoke(true, null)
+                        }
+                    } else {
+                        Log.e(TAG, "❌ Falha no envio CPCL após retry")
+                        withContext(Dispatchers.Main) {
+                            onPrintResult?.invoke(false, "Falha no envio após tentativas de reconexão")
+                        }
+                    }
                 }
                 
             } catch (e: Exception) {
-                Log.e(TAG, "Erro na impressão CPCL: ${e.message}")
+                Log.e(TAG, "Erro na impressão: ${e.message}")
                 Log.e(TAG, "Stack trace: ${e.stackTraceToString()}")
-                
-                // Tentar reconectar se a conexão foi perdida
-                if (e.message?.contains("Conexão perdida") == true) {
-                    disconnect()
-                }
                 
                 withContext(Dispatchers.Main) {
                     onPrintResult?.invoke(false, "Erro na impressão: ${e.message}")
                 }
             }
+        }
+    }
+    
+    /**
+     * Converte comandos CPCL para protocolo NIIMBOT
+     */
+    private fun convertCPCLToNiimbot(cpclCommands: String): String {
+        // Protocolo NIIMBOT baseado na biblioteca niimbluelib
+        return buildString {
+            // Comando de inicialização
+            append(0x02.toChar())  // STX
+            append(0x00.toChar())  // Comando de inicialização
+            append(0x00.toChar())  // Dados
+            append(0x03.toChar())  // ETX
+            
+            // Comando de impressão de texto
+            append(0x02.toChar())  // STX
+            append(0x01.toChar())  // CMD_PRINT_TEXT
+            append(cpclCommands.length.toChar())  // Tamanho
+            append(cpclCommands)  // Texto
+            append(0x03.toChar())  // ETX
+            
+            // Comando de alimentar papel
+            append(0x02.toChar())  // STX
+            append(0x05.toChar())  // CMD_FEED
+            append(0x01.toChar())  // 1 linha
+            append(0x03.toChar())  // ETX
         }
     }
     
@@ -1036,6 +1086,180 @@ class BluetoothManager(private val context: Context) {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Erro no teste 60x60mm universal: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    callback(false, "Erro: ${e.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * Verifica se está conectado e reconecta se necessário
+     */
+    private fun ensureConnection(): Boolean {
+        if (isConnected()) {
+            return true
+        }
+        
+        Log.w(TAG, "⚠️ Conexão perdida, tentando reconectar...")
+        
+        // Tentar reconectar automaticamente
+        currentDevice?.let { device ->
+            try {
+                // Fechar conexões antigas
+                disconnect()
+                
+                // Aguardar um pouco
+                Thread.sleep(1000)
+                
+                // Tentar reconectar
+                val uuid = UUID.fromString(SPP_UUID)
+                bluetoothSocket = device.createRfcommSocketToServiceRecord(uuid)
+                bluetoothSocket?.connect()
+                
+                Thread.sleep(1000)
+                
+                if (bluetoothSocket?.isConnected == true) {
+                    outputStream = bluetoothSocket?.outputStream
+                    if (outputStream != null) {
+                        Log.d(TAG, "✅ Reconexão bem-sucedida")
+                        return true
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Falha na reconexão: ${e.message}")
+            }
+        }
+        
+        Log.e(TAG, "❌ Não foi possível reconectar")
+        return false
+    }
+    
+    /**
+     * Envia dados com verificação de conexão e retry
+     */
+    private fun sendDataWithRetry(data: ByteArray, maxRetries: Int = 3): Boolean {
+        var retries = 0
+        
+        while (retries < maxRetries) {
+            try {
+                if (!ensureConnection()) {
+                    Log.e(TAG, "❌ Sem conexão para envio")
+                    return false
+                }
+                
+                // Verificar se o socket ainda está válido
+                if (bluetoothSocket?.isConnected != true || outputStream == null) {
+                    Log.w(TAG, "⚠️ Socket inválido, tentando reconectar...")
+                    if (!ensureConnection()) {
+                        retries++
+                        continue
+                    }
+                }
+                
+                // Enviar dados
+                outputStream?.write(data)
+                outputStream?.flush()
+                
+                Log.d(TAG, "✅ Dados enviados com sucesso (${data.size} bytes)")
+                return true
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Erro no envio (tentativa ${retries + 1}): ${e.message}")
+                
+                if (e.message?.contains("Broken pipe", ignoreCase = true) == true ||
+                    e.message?.contains("Connection reset", ignoreCase = true) == true) {
+                    Log.w(TAG, "🔄 Conexão resetada, tentando reconectar...")
+                    disconnect()
+                    Thread.sleep(1000)
+                }
+                
+                retries++
+                if (retries < maxRetries) {
+                    Log.d(TAG, "🔄 Aguardando antes da próxima tentativa...")
+                    Thread.sleep(2000)
+                }
+            }
+        }
+        
+        Log.e(TAG, "❌ Falha no envio após $maxRetries tentativas")
+        return false
+    }
+
+    /**
+     * Imprime etiqueta usando protocolo NIIMBOT correto
+     */
+    fun printNiimbotLabel(title: String, subtitle: String = "", callback: (Boolean, String?) -> Unit) {
+        if (!isConnected()) {
+            callback(false, "Dispositivo não conectado")
+            return
+        }
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                Log.d(TAG, "=== IMPRESSÃO ETIQUETA NIIMBOT ===")
+                Log.d(TAG, "Título: $title")
+                Log.d(TAG, "Subtítulo: $subtitle")
+                
+                // Protocolo NIIMBOT correto baseado na biblioteca niimbluelib
+                val niimbotCommands = buildString {
+                    // Comando de inicialização
+                    append(0x02.toChar())  // STX
+                    append(0x00.toChar())  // Comando de inicialização
+                    append(0x00.toChar())  // Dados
+                    append(0x03.toChar())  // ETX
+                    
+                    // Comando de impressão de etiqueta
+                    append(0x02.toChar())  // STX
+                    append(0x02.toChar())  // CMD_PRINT_LABEL
+                    append(0x00.toChar())  // Tamanho (será calculado)
+                    append(0x03.toChar())  // ETX
+                    
+                    // Comando de impressão de texto (título)
+                    append(0x02.toChar())  // STX
+                    append(0x01.toChar())  // CMD_PRINT_TEXT
+                    append(title.length.toChar())  // Tamanho do título
+                    append(title)  // Título
+                    append(0x03.toChar())  // ETX
+                    
+                    // Comando de impressão de texto (subtítulo)
+                    if (subtitle.isNotEmpty()) {
+                        append(0x02.toChar())  // STX
+                        append(0x01.toChar())  // CMD_PRINT_TEXT
+                        append(subtitle.length.toChar())  // Tamanho do subtítulo
+                        append(subtitle)  // Subtítulo
+                        append(0x03.toChar())  // ETX
+                    }
+                    
+                    // Comando de alimentar papel
+                    append(0x02.toChar())  // STX
+                    append(0x05.toChar())  // CMD_FEED
+                    append(0x01.toChar())  // 1 linha
+                    append(0x03.toChar())  // ETX
+                }
+                
+                Log.d(TAG, "Comandos NIIMBOT: ${niimbotCommands.map { it.code.toByte() }}")
+                
+                val data = niimbotCommands.toByteArray()
+                Log.d(TAG, "Enviando ${data.size} bytes via NIIMBOT")
+                
+                // Usar sistema de retry para evitar "Broken Pipe"
+                val success = sendDataWithRetry(data)
+                
+                if (success) {
+                    Log.d(TAG, "=== ETIQUETA NIIMBOT IMPRESSA COM SUCESSO ===")
+                    withContext(Dispatchers.Main) {
+                        callback(true, "Etiqueta NIIMBOT impressa")
+                    }
+                } else {
+                    Log.e(TAG, "❌ Falha na impressão da etiqueta NIIMBOT")
+                    withContext(Dispatchers.Main) {
+                        callback(false, "Falha na impressão da etiqueta")
+                    }
+                }
+                
+            } catch (e: Exception) {
+                Log.e(TAG, "Erro na impressão da etiqueta NIIMBOT: ${e.message}")
                 withContext(Dispatchers.Main) {
                     callback(false, "Erro: ${e.message}")
                 }
